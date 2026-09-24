@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go test:*)", "Bash(go build:*)", "Bash(go run:*)",
+      "Bash(npm run:*)", "Bash(docker compose:*)", "Bash(git status)", "Bash(git diff:*)"
+    ],
+    "deny": ["Read(./.env)"]
+  }
+}

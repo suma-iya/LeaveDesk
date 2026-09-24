@@ -47,7 +47,10 @@ services:
       retries: 5
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_USE_MOCK: ${VITE_USE_MOCK:-true}
     restart: unless-stopped
     depends_on:
       backend:

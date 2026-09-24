@@ -32,3 +32,6 @@ export function formatRange(start: DateLike, end: DateLike) {
   if (isSameYear(a, b)) return `${format(a, 'dd MMM')} – ${format(b, 'dd MMM yyyy')}`
   return `${formatDate(a)} – ${formatDate(b)}`
 }
+
+/** Month key used by the calendar API: "2026-10" */
+export const monthKey = (value: DateLike) => format(toDate(value), 'yyyy-MM')

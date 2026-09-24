@@ -53,11 +53,3 @@ export function FilterSelect({ filter, className }: { filter: SelectFilter; clas
     </Select>
   )
 }
-
-/** Shared option lists for the filter selects. */
-export const ALL = 'all'
-
-export const optionsFrom = (allLabel: string, values: string[]) => [
-  { value: ALL, label: allLabel },
-  ...values.map((v) => ({ value: v, label: v })),
-]

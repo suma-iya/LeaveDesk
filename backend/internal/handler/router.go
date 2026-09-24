@@ -11,14 +11,18 @@ import (
 
 // Routes registers every endpoint. Go 1.22+ ServeMux patterns include the
 // HTTP method and path wildcards like {id}, so no router library is needed.
-func (h *Handler) Routes(tokens *auth.TokenManager) http.Handler {
+func (h *Handler) Routes(tokens *auth.TokenManager, users middleware.UserLookup) http.Handler {
 	mux := http.NewServeMux()
 
-	authenticated := middleware.Authenticate(tokens)
-	managerOnly := func(fn http.HandlerFunc) http.Handler {
-		return authenticated(middleware.RequireRole(model.RoleManager)(fn))
-	}
+	authenticated := middleware.Authenticate(tokens, users)
 	anyUser := func(fn http.HandlerFunc) http.Handler { return authenticated(fn) }
+	withRole := func(role model.Role) func(http.HandlerFunc) http.Handler {
+		return func(fn http.HandlerFunc) http.Handler {
+			return authenticated(middleware.RequireRole(role)(fn))
+		}
+	}
+	employeeOnly := withRole(model.RoleEmployee)
+	managerOnly := withRole(model.RoleManager)
 
 	// Public
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -30,10 +34,13 @@ func (h *Handler) Routes(tokens *auth.TokenManager) http.Handler {
 
 	// Any logged-in user
 	mux.Handle("GET /api/auth/me", anyUser(h.Me))
-	mux.Handle("GET /api/leaves/mine", anyUser(h.MyLeaves))
-	mux.Handle("GET /api/leaves/mine/summary", anyUser(h.MySummary))
-	mux.Handle("POST /api/leaves", anyUser(h.ApplyLeave))
-	mux.Handle("DELETE /api/leaves/{id}", anyUser(h.CancelLeave))
+
+	// Employee only. Managers do not file leave here, so a manager can
+	// never approve their own request.
+	mux.Handle("GET /api/leaves/mine", employeeOnly(h.MyLeaves))
+	mux.Handle("GET /api/leaves/mine/summary", employeeOnly(h.MySummary))
+	mux.Handle("POST /api/leaves", employeeOnly(h.ApplyLeave))
+	mux.Handle("DELETE /api/leaves/{id}", employeeOnly(h.CancelLeave))
 
 	// Manager only
 	mux.Handle("GET /api/dashboard", managerOnly(h.Dashboard))

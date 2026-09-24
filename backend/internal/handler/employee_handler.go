@@ -39,7 +39,7 @@ func (h *Handler) GetEmployee(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	detail, err := h.employees.Get(r.Context(), id, h.leaves.Timezone())
+	detail, err := h.employees.Get(r.Context(), id)
 	if err != nil {
 		writeError(w, err)
 		return

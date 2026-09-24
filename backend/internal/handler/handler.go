@@ -16,15 +16,22 @@ import (
 	"github.com/suma-iya/employee-leave-tracker/backend/internal/service"
 )
 
-type Handler struct {
-	auth           *service.AuthService
-	employees      *service.EmployeeService
-	leaves         *service.LeaveService
-	googleClientID string
+// PublicConfig is served to the login page by GET /api/auth/config.
+type PublicConfig struct {
+	GoogleClientID string `json:"google_client_id"`
+	Timezone       string `json:"timezone"`  // so the UI's "today" matches the server's
+	DemoMode       bool   `json:"demo_mode"` // show demo-account shortcuts on the login page
 }
 
-func New(auth *service.AuthService, employees *service.EmployeeService, leaves *service.LeaveService, googleClientID string) *Handler {
-	return &Handler{auth: auth, employees: employees, leaves: leaves, googleClientID: googleClientID}
+type Handler struct {
+	auth      *service.AuthService
+	employees *service.EmployeeService
+	leaves    *service.LeaveService
+	config    PublicConfig
+}
+
+func New(auth *service.AuthService, employees *service.EmployeeService, leaves *service.LeaveService, config PublicConfig) *Handler {
+	return &Handler{auth: auth, employees: employees, leaves: leaves, config: config}
 }
 
 const maxBodyBytes = 1 << 20 // 1 MB

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -48,17 +49,25 @@ func (s *LeaveService) Apply(ctx context.Context, userID int64, in ApplyLeaveInp
 		return nil, err
 	}
 	if overlap {
-		return nil, model.Conflict("you already have a pending or approved leave in these dates")
+		return nil, errOverlap
 	}
 
-	return s.leaves.Create(ctx, &model.Leave{
+	leave, err := s.leaves.Create(ctx, &model.Leave{
 		UserID:    userID,
 		Type:      in.Type,
 		StartDate: *in.StartDate,
 		EndDate:   *in.EndDate,
 		Reason:    in.Reason,
 	})
+	// A concurrent request can slip past HasOverlap; the database's
+	// leaves_no_overlap constraint then rejects it as a conflict.
+	if errors.Is(err, model.ErrConflict) {
+		return nil, errOverlap
+	}
+	return leave, err
 }
+
+var errOverlap = model.Conflict("you already have a pending or approved leave in these dates")
 
 func (s *LeaveService) validateApply(in ApplyLeaveInput) error {
 	switch {

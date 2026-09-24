@@ -4,6 +4,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"strings"
@@ -50,9 +51,16 @@ func Recover(next http.Handler) http.Handler {
 
 type contextKey struct{}
 
-// Authenticate requires a valid "Authorization: Bearer <jwt>" header and
-// stores the verified claims in the request context.
-func Authenticate(tokens *auth.TokenManager) func(http.Handler) http.Handler {
+// UserLookup is the one repository method Authenticate needs.
+type UserLookup interface {
+	GetByID(ctx context.Context, id int64) (*model.User, error)
+}
+
+// Authenticate requires a valid "Authorization: Bearer <jwt>" header.
+// After checking the signature it also loads the user, so a deleted
+// account is locked out at once and the role always comes from the
+// database, not from a token that may be up to JWT_TTL old.
+func Authenticate(tokens *auth.TokenManager, users UserLookup) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			raw, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
@@ -65,6 +73,18 @@ func Authenticate(tokens *auth.TokenManager) func(http.Handler) http.Handler {
 				respond.Error(w, http.StatusUnauthorized, "invalid or expired token")
 				return
 			}
+			userID, _ := claims.UserID() // already validated by Parse
+			user, err := users.GetByID(r.Context(), userID)
+			if errors.Is(err, model.ErrNotFound) {
+				respond.Error(w, http.StatusUnauthorized, "account no longer exists")
+				return
+			}
+			if err != nil {
+				log.Printf("authenticate: %v", err)
+				respond.Error(w, http.StatusInternalServerError, "internal server error")
+				return
+			}
+			claims.Role = user.Role
 			ctx := context.WithValue(r.Context(), contextKey{}, claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

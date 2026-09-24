@@ -11,7 +11,11 @@ import (
 	"github.com/suma-iya/employee-leave-tracker/backend/internal/model"
 )
 
-const pgUniqueViolation = "23505"
+const (
+	pgUniqueViolation    = "23505" // UNIQUE constraint
+	pgForeignKeyMissing  = "23503" // referenced row (e.g. the user) no longer exists
+	pgExclusionViolation = "23P01" // leaves_no_overlap constraint
+)
 
 // translate turns driver errors into domain errors the service understands.
 func translate(err error) error {
@@ -19,8 +23,13 @@ func translate(err error) error {
 		return model.ErrNotFound
 	}
 	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == pgUniqueViolation {
-		return model.ErrConflict
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case pgUniqueViolation, pgExclusionViolation:
+			return model.ErrConflict
+		case pgForeignKeyMissing:
+			return model.ErrNotFound
+		}
 	}
 	return err
 }

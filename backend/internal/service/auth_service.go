@@ -17,10 +17,11 @@ type AuthService struct {
 	tokens        *auth.TokenManager
 	google        auth.GoogleVerifier
 	managerEmails []string
+	autoSignup    bool
 }
 
-func NewAuthService(users UserStore, tokens *auth.TokenManager, google auth.GoogleVerifier, managerEmails []string) *AuthService {
-	return &AuthService{users: users, tokens: tokens, google: google, managerEmails: managerEmails}
+func NewAuthService(users UserStore, tokens *auth.TokenManager, google auth.GoogleVerifier, managerEmails []string, autoSignup bool) *AuthService {
+	return &AuthService{users: users, tokens: tokens, google: google, managerEmails: managerEmails, autoSignup: autoSignup}
 }
 
 var errInvalidCredentials = model.Unauthorized("invalid email or password")
@@ -79,7 +80,11 @@ func (s *AuthService) GoogleLogin(ctx context.Context, credential string) (*Sess
 	// Known email (e.g. pre-registered by a manager): link the Google account.
 	user, err = s.users.GetByEmail(ctx, email)
 	if err == nil {
-		if err := s.users.LinkGoogleID(ctx, user.ID, identity.Subject); err != nil {
+		err := s.users.LinkGoogleID(ctx, user.ID, identity.Subject)
+		if errors.Is(err, model.ErrConflict) {
+			return nil, model.Conflict("this email is already linked to a different Google account")
+		}
+		if err != nil {
 			return nil, fmt.Errorf("google login: %w", err)
 		}
 		return s.newSession(user)
@@ -88,17 +93,24 @@ func (s *AuthService) GoogleLogin(ctx context.Context, credential string) (*Sess
 		return nil, fmt.Errorf("google login: %w", err)
 	}
 
-	// First visit: create the account.
+	// First visit: create the account (if allowed).
 	role := model.RoleEmployee
 	if slices.Contains(s.managerEmails, email) {
 		role = model.RoleManager
+	} else if !s.autoSignup {
+		return nil, model.Forbidden("no account for this email yet; ask your manager to add you")
 	}
 	name := identity.Name
 	if name == "" {
 		name = email
 	}
 	user = &model.User{Name: name, Email: email, Role: role, GoogleID: &identity.Subject}
-	if err := s.users.Create(ctx, user); err != nil {
+	err = s.users.Create(ctx, user)
+	if errors.Is(err, model.ErrConflict) {
+		// Another request created this user a moment ago; use that row.
+		user, err = s.users.GetByEmail(ctx, email)
+	}
+	if err != nil {
 		return nil, fmt.Errorf("google login: %w", err)
 	}
 	return s.newSession(user)

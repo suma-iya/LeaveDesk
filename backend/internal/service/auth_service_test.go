@@ -60,7 +60,7 @@ func TestAuthService_Login(t *testing.T) {
 		"google@example.com": {ID: 2, Email: "google@example.com", Role: model.RoleEmployee}, // no password
 	}}
 	tokens := auth.NewTokenManager("test-secret-at-least-16", time.Hour)
-	svc := NewAuthService(store, tokens, fakeGoogle{}, nil)
+	svc := NewAuthService(store, tokens, fakeGoogle{}, nil, true)
 
 	tests := []struct {
 		name, email, password string
@@ -103,7 +103,7 @@ func TestAuthService_GoogleLogin(t *testing.T) {
 
 	t.Run("new manager email gets MANAGER role", func(t *testing.T) {
 		store := &fakeUserStore{byEmail: map[string]*model.User{}}
-		svc := NewAuthService(store, tokens, fakeGoogle{identity: identity}, []string{"boss@example.com"})
+		svc := NewAuthService(store, tokens, fakeGoogle{identity: identity}, []string{"boss@example.com"}, false)
 		session, err := svc.GoogleLogin(context.Background(), "id-token")
 		if err != nil {
 			t.Fatal(err)
@@ -117,7 +117,7 @@ func TestAuthService_GoogleLogin(t *testing.T) {
 		store := &fakeUserStore{byEmail: map[string]*model.User{
 			"boss@example.com": {ID: 5, Email: "boss@example.com", Role: model.RoleEmployee},
 		}}
-		svc := NewAuthService(store, tokens, fakeGoogle{identity: identity}, nil)
+		svc := NewAuthService(store, tokens, fakeGoogle{identity: identity}, nil, true)
 		session, err := svc.GoogleLogin(context.Background(), "id-token")
 		if err != nil {
 			t.Fatal(err)
@@ -127,8 +127,19 @@ func TestAuthService_GoogleLogin(t *testing.T) {
 		}
 	})
 
+	t.Run("unknown email is refused when auto signup is off", func(t *testing.T) {
+		store := &fakeUserStore{byEmail: map[string]*model.User{}}
+		svc := NewAuthService(store, tokens, fakeGoogle{identity: identity}, nil, false)
+		if _, err := svc.GoogleLogin(context.Background(), "id-token"); !errors.Is(err, model.ErrForbidden) {
+			t.Fatalf("want forbidden, got %v", err)
+		}
+		if store.created != nil {
+			t.Fatal("no user should be created")
+		}
+	})
+
 	t.Run("rejected token is unauthorized", func(t *testing.T) {
-		svc := NewAuthService(&fakeUserStore{}, tokens, fakeGoogle{err: errors.New("bad aud")}, nil)
+		svc := NewAuthService(&fakeUserStore{}, tokens, fakeGoogle{err: errors.New("bad aud")}, nil, true)
 		if _, err := svc.GoogleLogin(context.Background(), "id-token"); !errors.Is(err, model.ErrUnauthorized) {
 			t.Fatalf("want unauthorized, got %v", err)
 		}

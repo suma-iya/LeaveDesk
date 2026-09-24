@@ -14,6 +14,7 @@ import (
 type fakeLeaveStore struct {
 	LeaveStore
 	overlap  bool
+	raceLost bool // Create fails like the DB exclusion constraint would
 	created  *model.Leave
 	leaves   map[int64]*model.Leave
 	reviewed bool
@@ -24,6 +25,9 @@ func (f *fakeLeaveStore) HasOverlap(context.Context, int64, model.Date, model.Da
 }
 
 func (f *fakeLeaveStore) Create(_ context.Context, l *model.Leave) (*model.Leave, error) {
+	if f.raceLost {
+		return nil, model.ErrConflict
+	}
 	l.ID, l.Status = 1, model.StatusPending
 	f.created = l
 	return l, nil
@@ -72,10 +76,11 @@ func date(s string) *model.Date {
 
 func TestLeaveService_Apply(t *testing.T) {
 	tests := []struct {
-		name    string
-		input   ApplyLeaveInput
-		overlap bool
-		wantErr error // nil means success
+		name     string
+		input    ApplyLeaveInput
+		overlap  bool
+		raceLost bool
+		wantErr  error // nil means success
 	}{
 		{
 			name:  "valid annual leave",
@@ -120,11 +125,17 @@ func TestLeaveService_Apply(t *testing.T) {
 			overlap: true,
 			wantErr: model.ErrConflict,
 		},
+		{
+			name:     "concurrent overlap caught by the database",
+			input:    ApplyLeaveInput{Type: model.LeaveAnnual, StartDate: date("2026-10-01"), EndDate: date("2026-10-02"), Reason: "x"},
+			raceLost: true,
+			wantErr:  model.ErrConflict,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := &fakeLeaveStore{overlap: tt.overlap}
+			store := &fakeLeaveStore{overlap: tt.overlap, raceLost: tt.raceLost}
 			leave, err := newTestLeaveService(store).Apply(context.Background(), 7, tt.input)
 
 			if tt.wantErr != nil {

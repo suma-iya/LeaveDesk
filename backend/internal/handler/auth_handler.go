@@ -8,7 +8,7 @@ import (
 
 // GET /api/auth/config — public settings the login page needs.
 func (h *Handler) AuthConfig(w http.ResponseWriter, r *http.Request) {
-	respond.JSON(w, http.StatusOK, map[string]string{"google_client_id": h.googleClientID})
+	respond.JSON(w, http.StatusOK, h.config)
 }
 
 type loginRequest struct {

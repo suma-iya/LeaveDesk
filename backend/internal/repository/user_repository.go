@@ -63,10 +63,17 @@ func (r *UserRepository) GetByGoogleID(ctx context.Context, googleID string) (*m
 	return u, nil
 }
 
+// LinkGoogleID attaches a Google account, but never replaces a different
+// one that is already linked (that returns ErrConflict).
 func (r *UserRepository) LinkGoogleID(ctx context.Context, userID int64, googleID string) error {
-	_, err := r.db.Exec(ctx, `UPDATE users SET google_id = $1 WHERE id = $2`, googleID, userID)
+	tag, err := r.db.Exec(ctx, `
+		UPDATE users SET google_id = $1
+		WHERE id = $2 AND (google_id IS NULL OR google_id = $1)`, googleID, userID)
 	if err != nil {
 		return fmt.Errorf("link google id: %w", translate(err))
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("link google id: %w", model.ErrConflict)
 	}
 	return nil
 }

@@ -51,8 +51,8 @@ func run() error {
 	tokens := auth.NewTokenManager(cfg.JWTSecret, cfg.JWTTTL)
 	now := time.Now
 
-	authService := service.NewAuthService(userRepo, tokens, auth.NewGoogleVerifier(cfg.GoogleClientID), cfg.ManagerEmails)
-	employeeService := service.NewEmployeeService(userRepo, leaveRepo, now)
+	authService := service.NewAuthService(userRepo, tokens, auth.NewGoogleVerifier(cfg.GoogleClientID), cfg.ManagerEmails, cfg.GoogleAutoSignup)
+	employeeService := service.NewEmployeeService(userRepo, leaveRepo, cfg.Location, now)
 	leaveService := service.NewLeaveService(leaveRepo, userRepo, cfg.Location, now)
 
 	if err := seed.Manager(ctx, userRepo, cfg.SeedManagerName, cfg.SeedManagerEmail, cfg.SeedManagerPassword); err != nil {
@@ -64,10 +64,14 @@ func run() error {
 		}
 	}
 
-	h := handler.New(authService, employeeService, leaveService, cfg.GoogleClientID)
+	h := handler.New(authService, employeeService, leaveService, handler.PublicConfig{
+		GoogleClientID: cfg.GoogleClientID,
+		Timezone:       cfg.Location.String(),
+		DemoMode:       cfg.SeedDemoData,
+	})
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           h.Routes(tokens),
+		Handler:           h.Routes(tokens, userRepo),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

@@ -12,13 +12,14 @@ import (
 )
 
 type EmployeeService struct {
-	users  UserStore
-	leaves LeaveStore
-	now    func() time.Time
+	users    UserStore
+	leaves   LeaveStore
+	location *time.Location
+	now      func() time.Time
 }
 
-func NewEmployeeService(users UserStore, leaves LeaveStore, now func() time.Time) *EmployeeService {
-	return &EmployeeService{users: users, leaves: leaves, now: now}
+func NewEmployeeService(users UserStore, leaves LeaveStore, location *time.Location, now func() time.Time) *EmployeeService {
+	return &EmployeeService{users: users, leaves: leaves, location: location, now: now}
 }
 
 // EmployeeInput is the body for create/update. Password is optional:
@@ -79,16 +80,16 @@ type EmployeeDetail struct {
 	Leaves   []model.Leave         `json:"leaves"`
 }
 
-func (s *EmployeeService) Get(ctx context.Context, id int64, timezone string) (*EmployeeDetail, error) {
+func (s *EmployeeService) Get(ctx context.Context, id int64) (*EmployeeDetail, error) {
 	user, err := s.getEmployee(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	leaves, err := s.leaves.List(ctx, model.LeaveFilter{UserID: id}, timezone)
+	leaves, err := s.leaves.List(ctx, model.LeaveFilter{UserID: id}, s.location.String())
 	if err != nil {
 		return nil, err
 	}
-	summary, err := summarise(ctx, s.leaves, id, s.now().Year())
+	summary, err := summarise(ctx, s.leaves, id, s.now().In(s.location).Year())
 	if err != nil {
 		return nil, err
 	}

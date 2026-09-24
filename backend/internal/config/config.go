@@ -18,6 +18,8 @@ type Config struct {
 	GoogleClientID string
 	// Google accounts with these emails become MANAGER on first login.
 	ManagerEmails []string
+	// When false, Google sign-in only works for emails already in the DB.
+	GoogleAutoSignup bool
 
 	SeedManagerName     string
 	SeedManagerEmail    string
@@ -35,6 +37,7 @@ func Load() (*Config, error) {
 		JWTSecret:           os.Getenv("JWT_SECRET"),
 		GoogleClientID:      os.Getenv("GOOGLE_CLIENT_ID"),
 		ManagerEmails:       splitEmails(os.Getenv("MANAGER_EMAILS")),
+		GoogleAutoSignup:    getEnv("GOOGLE_AUTO_SIGNUP", "true") == "true",
 		SeedManagerName:     getEnv("SEED_MANAGER_NAME", "Default Manager"),
 		SeedManagerEmail:    strings.ToLower(os.Getenv("SEED_MANAGER_EMAIL")),
 		SeedManagerPassword: os.Getenv("SEED_MANAGER_PASSWORD"),

@@ -101,7 +101,8 @@ export function RequestReviewPage() {
           </Card>
         </div>
 
-        <div className="flex flex-col gap-5">
+        {/* On small screens the application comes first. */}
+        <div className="order-first flex flex-col gap-5 lg:order-none">
           {overlapping.length > 0 && (
             <Alert tone="warning">
               <strong className="font-semibold">

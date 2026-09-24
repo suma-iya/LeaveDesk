@@ -90,6 +90,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
           {props.title && <CardTitle className="mr-auto">{props.title}</CardTitle>}
           {total > 0 && (
             <div className={cn('flex items-center gap-2', !props.title && 'ml-auto')}>
+              {props.filters && !props.filters.some((f) => f.kind === 'search') && (
+                <MobileFilters filters={props.filters} onReset={props.onReset} part="button" />
+              )}
               <span className="text-[13px] text-muted-foreground">{first}–{last} of {total}</span>
               <IconButton icon={ChevronLeft} label="Previous page" variant="secondary"
                 disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()} />
@@ -98,7 +101,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
             </div>
           )}
         </div>
-        {props.filters && props.filters.length > 0 && <MobileFilters filters={props.filters} onReset={props.onReset} />}
+        {props.filters && props.filters.length > 0 && (
+          <MobileFilters filters={props.filters} onReset={props.onReset}
+            part={props.filters.some((f) => f.kind === 'search') || total === 0 ? 'all' : 'chips'} />
+        )}
         {body ?? (
           <ul className="flex flex-col gap-3">
             {props.isLoading
@@ -215,22 +221,31 @@ function selectColumn<T>(): ColumnDef<T> {
   }
 }
 
-/** Mobile: search next to a Filters button; selects live in a bottom sheet. */
-function MobileFilters({ filters, onReset }: { filters: FilterDef[]; onReset?: () => void }) {
+/**
+ * Mobile: search next to a Filters button; selects live in a bottom sheet and
+ * active ones show as removable chips. Without a search box the button moves
+ * into the title row (part="button") and only the chips render below it.
+ */
+function MobileFilters({ filters, onReset, part = 'all' }: { filters: FilterDef[]; onReset?: () => void; part?: 'all' | 'button' | 'chips' }) {
   const [open, setOpen] = useState(false)
   const search = filters.find((f) => f.kind === 'search')
   const selects = filters.filter((f): f is SelectFilter => f.kind === 'select')
   const active = selects.filter((f) => f.value !== f.defaultValue)
 
+  const button = selects.length > 0 && (
+    <IconButton icon={SlidersHorizontal} label="Filters" variant="secondary" onClick={() => setOpen(true)} />
+  )
+
   return (
     <>
-      <div className="flex items-center gap-2">
-        {search ? <SearchInput filter={search} className="h-11 flex-1" /> : <span className="flex-1" />}
-        {selects.length > 0 && (
-          <IconButton icon={SlidersHorizontal} label="Filters" variant="secondary" onClick={() => setOpen(true)} />
-        )}
-      </div>
-      {active.length > 0 && (
+      {part === 'button' && button}
+      {part === 'all' && (
+        <div className="flex items-center gap-2">
+          {search ? <SearchInput filter={search} className="h-11 flex-1" /> : <span className="flex-1" />}
+          {button}
+        </div>
+      )}
+      {part !== 'button' && active.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {active.map((filter) => (
             <button
@@ -246,7 +261,7 @@ function MobileFilters({ filters, onReset }: { filters: FilterDef[]; onReset?: (
           ))}
         </div>
       )}
-      <Sheet open={open} onOpenChange={setOpen}>
+      {part !== 'chips' && <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" showCloseButton={false} className="rounded-t-card bg-header">
           <SheetHeader className="flex-row items-center justify-between">
             <div>
@@ -270,7 +285,7 @@ function MobileFilters({ filters, onReset }: { filters: FilterDef[]; onReset?: (
             )}
           </div>
         </SheetContent>
-      </Sheet>
+      </Sheet>}
     </>
   )
 }

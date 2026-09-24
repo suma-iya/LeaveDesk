@@ -9,9 +9,20 @@ export function leaveTypeLabel(value) {
   return LEAVE_TYPES.find((t) => t.value === value)?.label ?? value
 }
 
-// Today's date as YYYY-MM-DD in the browser's timezone.
+// The company timezone from the server (APP_TIMEZONE). "Today" is computed
+// in it so date pickers agree with the server's "no past dates" rule.
+let appTimeZone
+export function setAppTimeZone(timeZone) {
+  appTimeZone = timeZone || undefined
+}
+
+// Today's date as YYYY-MM-DD (the en-CA locale formats dates that way).
 export function todayISO() {
-  return new Date().toLocaleDateString('en-CA')
+  try {
+    return new Date().toLocaleDateString('en-CA', { timeZone: appTimeZone })
+  } catch {
+    return new Date().toLocaleDateString('en-CA') // unknown zone: use the browser's
+  }
 }
 
 // "2026-09-24" → "24 Sep 2026". Parsed as local date to avoid a UTC shift.

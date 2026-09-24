@@ -15,7 +15,7 @@ const DEMO_ACCOUNTS = [
 ]
 
 export default function LoginPage() {
-  const { user, login, loginWithGoogle, googleClientId } = useAuth()
+  const { user, login, loginWithGoogle, googleClientId, demoMode } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
@@ -89,17 +89,19 @@ export default function LoginPage() {
           )}
         </CardContent>
 
-        <CardFooter className="flex-col items-stretch gap-2 border-t pt-4">
-          <p className="text-xs text-muted-foreground">Demo accounts (click to fill):</p>
-          <div className="grid grid-cols-2 gap-2">
-            {DEMO_ACCOUNTS.map((account) => (
-              <Button key={account.email} variant="outline" size="sm" type="button"
-                onClick={() => { setEmail(account.email); setPassword(account.password) }}>
-                {account.label}
-              </Button>
-            ))}
-          </div>
-        </CardFooter>
+        {demoMode && (
+          <CardFooter className="flex-col items-stretch gap-2 border-t pt-4">
+            <p className="text-xs text-muted-foreground">Demo accounts (click to fill):</p>
+            <div className="grid grid-cols-2 gap-2">
+              {DEMO_ACCOUNTS.map((account) => (
+                <Button key={account.email} variant="outline" size="sm" type="button"
+                  onClick={() => { setEmail(account.email); setPassword(account.password) }}>
+                  {account.label}
+                </Button>
+              ))}
+            </div>
+          </CardFooter>
+        )}
       </Card>
     </div>
   )

@@ -27,7 +27,10 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route index element={<HomeRedirect />} />
-          <Route path="/my-leaves" element={<MyLeavesPage />} />
+
+          <Route element={<ProtectedRoute role="EMPLOYEE" />}>
+            <Route path="/my-leaves" element={<MyLeavesPage />} />
+          </Route>
 
           <Route element={<ProtectedRoute role="MANAGER" />}>
             <Route path="/dashboard" element={<ManagerDashboardPage />} />

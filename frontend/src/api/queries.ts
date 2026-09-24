@@ -23,3 +23,6 @@ export const useBalances = (employeeId: string | undefined, year: number) =>
     queryFn: () => api.getBalances(employeeId!, year),
     enabled: Boolean(employeeId),
   })
+
+export const useRequestDetail = (id: string | undefined) =>
+  useQuery({ queryKey: keys.request(id ?? ''), queryFn: () => api.getRequest(id!), enabled: Boolean(id) })

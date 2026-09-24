@@ -14,10 +14,6 @@ export function useRequestRows(params: ListRequestsParams) {
   })
 }
 
-export function useRequestDetail(id: string) {
-  return useQuery({ queryKey: keys.request(id), queryFn: () => api.getRequest(id) })
-}
-
 /**
  * Approve or reject one or many requests. Instead of a confirm dialog, the
  * change happens at once and a toast offers Undo for 5 seconds.

@@ -22,7 +22,8 @@ import { fullName } from '@/lib/format'
 import { pluralDays, sumBalances } from '@/lib/leave'
 import { useIsMobile } from '@/lib/useIsMobile'
 import type { HrList } from './columns'
-import { useDecide, useRequestDetail } from './hooks'
+import { useRequestDetail } from '@/api/queries'
+import { useDecide } from './hooks'
 
 const LISTS: Record<HrList, { label: string; to: string }> = {
   pending: { label: 'Pending requests', to: '/hr/pending' },

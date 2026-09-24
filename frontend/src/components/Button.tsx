@@ -32,7 +32,7 @@ const buttonStyles = cva(
         ok: 'bg-ok-bg text-ok hover:bg-ok-bg-hover',
         danger: 'bg-danger-bg text-danger hover:bg-danger-bg-hover',
       },
-      shape: { labeled: 'gap-2 px-2 text-[13.5px]', icon: 'p-0' },
+      shape: { labeled: 'gap-2 px-1 text-[13.5px] tracking-[-0.01em]', icon: 'p-0' },
       size: { desktop: '', mobile: '', sticky: '' },
     },
     compoundVariants: [

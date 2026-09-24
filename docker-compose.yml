@@ -1,0 +1,58 @@
+# Three containers on one private network:
+#   browser → frontend (nginx :80, published as 3000) → backend (Go :8080) → db (Postgres :5432)
+# Only the frontend port is published; the API and database are reachable
+# from other containers by service name (e.g. http://backend:8080).
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-leave_tracker}
+      POSTGRES_USER: ${POSTGRES_USER:-leave}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-leave_secret}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy   # wait until Postgres accepts connections
+    environment:
+      PORT: "8080"
+      DATABASE_URL: postgres://${POSTGRES_USER:-leave}:${POSTGRES_PASSWORD:-leave_secret}@db:5432/${POSTGRES_DB:-leave_tracker}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      JWT_TTL: ${JWT_TTL:-24h}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      MANAGER_EMAILS: ${MANAGER_EMAILS:-}
+      SEED_MANAGER_NAME: ${SEED_MANAGER_NAME:-Default Manager}
+      SEED_MANAGER_EMAIL: ${SEED_MANAGER_EMAIL:-manager@example.com}
+      SEED_MANAGER_PASSWORD: ${SEED_MANAGER_PASSWORD:-manager123}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Dhaka}
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+
+volumes:
+  pgdata:

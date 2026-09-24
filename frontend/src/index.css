@@ -1,130 +1,174 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
 
+/* Dark mode is the .dark class on <html> (set by lib/theme.ts). */
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
-    --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
-}
-
+/* ==========================================================================
+   Design tokens — the ONLY place colours are defined.
+   Both themes change colours only, never sizes or layout.
+   ========================================================================== */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+  --bg: #fafafa;
+  --header: #ffffff;
+  --surface: #ffffff;
+  --sunk: #f4f4f5;
+  --border: #e4e4e7;
+  --text: #09090b;
+  --muted: #63636b;
+  --primary: #18181b;
+  --on-primary: #fafafa;
+  --primary-hover: #3f3f46;
+  --soft-hover: #e4e4e7;
+  --accent: #0891b2;
+  --accent-soft: #cffafe;
+  --ring: #2563eb;
+  --ok-fg: #15803d;
+  --ok-bg: #dcfce7;
+  --danger-fg: #b91c1c;
+  --danger-bg: #fee2e2;
+  --pending-fg: #92400e;
+  --pending-bg: #fef3c7;
+  --weekend-bg: #fff4ea;
+  --weekend-fg: #c2410c;
+  --heat-0: #ffffff;
+  --heat-1: #ecfeff;
+  --heat-2: #cffafe;
+  --heat-3: #a5f3fc;
+  --type-annual: #0891b2;
+  --type-casual: #7c3aed;
+  --type-sick: #db2777;
+
+  /* ok/danger hover: slightly darker in light mode */
+  --ok-bg-hover: color-mix(in oklab, var(--ok-bg), black 7%);
+  --danger-bg-hover: color-mix(in oklab, var(--danger-bg), black 7%);
+
+  /* Aliases read directly by generated shadcn/ui components. */
+  --foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --secondary: var(--sunk);
+  --radius: 8px;
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+  --bg: #09090b;
+  --header: #0c0c0e;
+  --surface: #111113;
+  --sunk: #1a1a1e;
+  --border: #27272a;
+  --text: #fafafa;
+  --muted: #a1a1aa;
+  --primary: #22d3ee;
+  --on-primary: #04262c;
+  --primary-hover: #67e8f9;
+  --soft-hover: #27272a;
+  --accent: #22d3ee;
+  --accent-soft: #123a41;
+  --ring: #22d3ee;
+  --ok-fg: #86efac;
+  --ok-bg: #12261b;
+  --danger-fg: #fb7185;
+  --danger-bg: #35131a;
+  --pending-fg: #fbbf24;
+  --pending-bg: #2e230c;
+  --weekend-bg: #17162b;
+  --weekend-fg: #a5b4fc;
+  --heat-0: #111113;
+  --heat-1: #0f2125;
+  --heat-2: #123138;
+  --heat-3: #16454d;
+  --type-annual: #22d3ee;
+  --type-casual: #a78bfa;
+  --type-sick: #f472b6;
+
+  /* ok/danger hover: slightly lighter in dark mode */
+  --ok-bg-hover: color-mix(in oklab, var(--ok-bg), white 8%);
+  --danger-bg-hover: color-mix(in oklab, var(--danger-bg), white 8%);
+}
+
+/* ==========================================================================
+   Tailwind theme. shadcn/ui's utility names (bg-muted, bg-accent, …) are
+   mapped onto the tokens above. Note two naming differences:
+     - shadcn "muted" is a background → --sunk; text-muted-foreground → --muted
+     - shadcn "accent" is a hover fill → --soft-hover; the spec's data
+       highlight --accent is exposed as `highlight` (bg-highlight, text-highlight).
+   ========================================================================== */
+@theme inline {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--on-primary);
+  --color-secondary: var(--sunk);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--sunk);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--soft-hover);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--danger-fg);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--ring);
+
+  --color-header: var(--header);
+  --color-surface: var(--surface);
+  --color-sunk: var(--sunk);
+  --color-on-primary: var(--on-primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-soft-hover: var(--soft-hover);
+  --color-highlight: var(--accent);
+  --color-highlight-soft: var(--accent-soft);
+  --color-ok: var(--ok-fg);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-bg-hover: var(--ok-bg-hover);
+  --color-danger: var(--danger-fg);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-bg-hover: var(--danger-bg-hover);
+  --color-pending: var(--pending-fg);
+  --color-pending-bg: var(--pending-bg);
+  --color-weekend: var(--weekend-fg);
+  --color-weekend-bg: var(--weekend-bg);
+  --color-heat-0: var(--heat-0);
+  --color-heat-1: var(--heat-1);
+  --color-heat-2: var(--heat-2);
+  --color-heat-3: var(--heat-3);
+  --color-type-annual: var(--type-annual);
+  --color-type-casual: var(--type-casual);
+  --color-type-sick: var(--type-sick);
+
+  /* 8px inputs/buttons, 10px stat tiles, 12px cards/tables */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-tile: 10px;
+  --radius-card: 12px;
+}
+
+/* Pending days inside any balance bar. */
+@utility pending-stripes {
+  background: repeating-linear-gradient(135deg, var(--pending-fg) 0 3px, transparent 3px 6px);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
-  body {
-    @apply bg-background text-foreground;
-    }
+  }
   html {
-    @apply font-sans;
-    }
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    font-size: 14px;
+  }
 }

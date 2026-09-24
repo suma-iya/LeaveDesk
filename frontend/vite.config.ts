@@ -8,7 +8,7 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(import.meta.dirname, './src') },
   },
-  // In `npm run dev`, forward /api to the Go server, just like nginx does in Docker.
+  // In `npm run dev`, forward /api to the Go server, as nginx does in Docker.
   server: {
     proxy: { '/api': 'http://localhost:8080' },
   },

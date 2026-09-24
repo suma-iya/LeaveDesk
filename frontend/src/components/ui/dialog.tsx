@@ -1,5 +1,5 @@
 import * as React from "react"
-import { cn } from "@/lib/utils"
+import { cn } from "cn"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { Button } from "@/components/ui/button"
@@ -7,32 +7,32 @@ import { XIcon } from "lucide-react"
 
 function Dialog({
   ...props
-}) {
+}: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
 function DialogTrigger({
   ...props
-}) {
+}: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
 }
 
 function DialogPortal({
   ...props
-}) {
+}: React.ComponentProps<typeof DialogPrimitive.Portal>) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
 }
 
 function DialogClose({
   ...props
-}) {
+}: React.ComponentProps<typeof DialogPrimitive.Close>) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
 function DialogOverlay({
   className,
   ...props
-}) {
+}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
@@ -50,6 +50,8 @@ function DialogContent({
   children,
   showCloseButton = true,
   ...props
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  showCloseButton?: boolean
 }) {
   return (
     <DialogPortal>
@@ -81,10 +83,7 @@ function DialogContent({
   )
 }
 
-function DialogHeader({
-  className,
-  ...props
-}) {
+function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
@@ -99,6 +98,8 @@ function DialogFooter({
   showCloseButton = false,
   children,
   ...props
+}: React.ComponentProps<"div"> & {
+  showCloseButton?: boolean
 }) {
   return (
     <div
@@ -122,12 +123,12 @@ function DialogFooter({
 function DialogTitle({
   className,
   ...props
-}) {
+}: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
       className={cn(
-        "font-heading text-base leading-none font-medium",
+        "text-base leading-none font-medium",
         className
       )}
       {...props}
@@ -138,7 +139,7 @@ function DialogTitle({
 function DialogDescription({
   className,
   ...props
-}) {
+}: React.ComponentProps<typeof DialogPrimitive.Description>) {
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"

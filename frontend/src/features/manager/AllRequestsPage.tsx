@@ -1,5 +1,5 @@
-import { PageHeader } from '@/components/PageHeader'
+import { DecidedListPage } from './DecidedListPage'
 
 export function AllRequestsPage() {
-  return <PageHeader title="All requests" />
+  return <DecidedListPage list="all" title="All requests" subtitle="Every leave request, in any status." />
 }

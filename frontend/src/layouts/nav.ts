@@ -15,7 +15,7 @@ export const NAV: Record<Role, NavItem[]> = {
   hr: [
     { to: '/hr/pending', label: 'Pending', tabLabel: 'Pending', icon: Clock, showPendingCount: true },
     { to: '/hr/approved', label: 'Approved', tabLabel: 'Approved', icon: CheckCircle2 },
-    { to: '/hr/requests', label: 'All requests', tabLabel: 'All', icon: List },
+    { to: '/hr/requests', label: 'All requests', tabLabel: 'All', icon: List, end: true },
     { to: '/calendar', label: 'Calendar', tabLabel: 'Calendar', icon: CalendarDays },
   ],
   employee: [

@@ -53,6 +53,10 @@ interface BaseProps extends Omit<ComponentProps<'button'>, 'children'> {
   loading?: boolean
   /** Render as a router link that looks like this button. */
   to?: string
+  /** Render as a plain link (downloads, new tabs). */
+  href?: string
+  download?: string
+  target?: string
 }
 
 export interface LabeledButtonProps extends BaseProps {
@@ -70,7 +74,7 @@ export function Button(props: LabeledButtonProps | IconButtonProps) {
   const isMobile = useIsMobile()
   const {
     icon: Icon, label, variant = 'secondary', shape = 'labeled', size, loading = false,
-    to, className, disabled, type = 'button', ...rest
+    to, href, download, target, className, disabled, type = 'button', ...rest
   } = props
   const resolvedSize = size ?? (isMobile ? 'mobile' : 'desktop')
   const iconClass = resolvedSize === 'desktop' ? 'size-4' : 'size-[18px]'
@@ -88,6 +92,10 @@ export function Button(props: LabeledButtonProps | IconButtonProps) {
   const button = to ? (
     <ShadcnButton asChild className={classes}>
       <Link to={to} {...a11y}>{content}</Link>
+    </ShadcnButton>
+  ) : href ? (
+    <ShadcnButton asChild className={classes}>
+      <a href={href} download={download} target={target} rel={target ? 'noreferrer' : undefined} {...a11y}>{content}</a>
     </ShadcnButton>
   ) : (
     <ShadcnButton

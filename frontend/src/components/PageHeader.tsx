@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { IconButton } from '@/components/AppButton'
-import { useIsMobile } from '@/lib/useIsMobile'
 import { cn } from '@/lib/utils'
 
 interface PageHeaderProps {
@@ -18,12 +17,11 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ title, subtitle, actions, back, breadcrumb, titleAside }: PageHeaderProps) {
-  const isMobile = useIsMobile()
   const detail = Boolean(back)
   return (
     <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="flex min-w-0 items-start gap-3">
-        {back && !isMobile && <IconButton icon={ArrowLeft} label={back.label} to={back.to} variant="secondary" />}
+        {back && <IconButton icon={ArrowLeft} label={back.label} to={back.to} variant="secondary" />}
         <div className="min-w-0">
           {breadcrumb && (
             <nav aria-label="Breadcrumb" className="mb-1 flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">

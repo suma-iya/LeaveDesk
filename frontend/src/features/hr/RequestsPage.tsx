@@ -53,7 +53,7 @@ export function RequestsPage() {
       {list === 'all' && (
         <div>
           <button type="button" aria-pressed={mine} onClick={toggleMine}
-            className={cn('inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[13px] font-semibold transition-colors',
+            className={cn('inline-flex h-8 items-center max-md:h-11 gap-1.5 rounded-md border px-3 text-[13px] font-semibold transition-colors',
               'focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
               mine ? 'border-highlight bg-highlight-soft text-foreground' : 'bg-surface text-muted-foreground hover:text-foreground')}>
             {mine && <Check className="size-3.5" aria-hidden />}Mine

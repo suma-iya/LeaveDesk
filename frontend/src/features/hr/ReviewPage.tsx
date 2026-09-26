@@ -146,12 +146,6 @@ export function ReviewPage() {
         title="Leave application"
         titleAside={<StatusBadge status={r.status} />}
       />
-      {isMobile && (
-        <div className="flex items-center justify-between">
-          <p className="text-[13px] text-muted-foreground">Request {r.code}</p>
-          <StatusBadge status={r.status} />
-        </div>
-      )}
       <div className="flex flex-col items-start gap-5 lg:flex-row">
         <div className="flex w-full min-w-0 flex-1 flex-col gap-5">
           {employeeCard}

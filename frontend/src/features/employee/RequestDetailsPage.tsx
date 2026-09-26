@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ChevronRight, FileText, Pencil, RotateCw, X } from 'lucide-react'
+import { ArrowLeft, ChevronRight, FileText, Pencil, RotateCw, X } from 'lucide-react'
 import { useRequestDetail } from '@/api/queries'
 import { AppButton, IconButton } from '@/components/AppButton'
 import { Avatar } from '@/components/Avatar'
@@ -68,7 +68,8 @@ export function RequestDetailsPage() {
     return (
       <>
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <IconButton icon={ArrowLeft} label={`Back to ${list.label}`} to={list.to} variant="secondary" />
+          <div className="min-w-0 flex-1">
             <p className="text-[13px] text-muted-foreground">{r.code} · {TYPE_LABEL[r.type]} leave</p>
             <h1 className="text-[22px] font-bold tracking-[-0.02em]">{range}</h1>
           </div>

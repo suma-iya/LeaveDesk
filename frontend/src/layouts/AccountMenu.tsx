@@ -24,7 +24,7 @@ export function AccountMenu({ side = 'right', className }: { side?: 'right' | 't
   return (
     <DropdownMenu>
       <DropdownMenuTrigger aria-label="Account menu"
-        className={cn('rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-rail focus-visible:outline-none', className)}>
+        className={cn('rounded-full max-md:p-[5px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-rail focus-visible:outline-none', className)}>
         <Avatar name={name} src={user.avatarUrl} size={34} />
       </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align="end" sideOffset={8} className="w-[260px] rounded-card p-1.5 shadow-lg">

@@ -17,7 +17,7 @@ export function HrRequestCard({ request: r, from, own, onReject, onApprove }: {
 }) {
   return (
     <Card className="flex flex-col gap-3 p-4">
-      <Link to={reviewLink(r)} state={{ from }} className="flex items-center gap-3 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+      <Link to={reviewLink(r)} state={{ from }} className="flex min-h-11 items-center gap-3 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
         <Avatar name={fullName(r.employee)} src={r.employee.avatarUrl} size={42} />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold">{fullName(r.employee)}</span>

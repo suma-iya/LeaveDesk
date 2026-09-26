@@ -102,6 +102,8 @@ docker compose exec backend /app/leavedesk demote --email someone@company.test
 
 **Development without Docker for the UI:** run `cd frontend && npm install`, then `API_PROXY=http://localhost:3000 npm run dev` while the stack runs. Vite proxies `/api` to it, just as nginx does.
 
+**Google sign-in in dev mode (port 5173).** Google sends the browser back to `GOOGLE_REDIRECT_URL`, so it must point at the port you have open. Set `GOOGLE_REDIRECT_URL=http://localhost:5173/api/auth/google/callback` in `.env`, add that URI under "Authorised redirect URIs" (and `http://localhost:5173` under "Authorised JavaScript origins") in Google Cloud Console, and recreate the backend. Vite forwards the callback to the API, and the API's redirects are relative, so you stay on 5173. Switch the value back to the `:3000` URI when you use the Docker UI again.
+
 ## 4. Architecture
 
 ```

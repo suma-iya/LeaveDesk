@@ -9,5 +9,5 @@ const subscribe = (onChange: () => void) => {
 }
 
 export function useIsMobile() {
-  return useSyncExternalStore(subscribe, () => query.matches)
+  return useSyncExternalStore(subscribe, () => query.matches, () => false)
 }

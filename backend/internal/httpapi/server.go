@@ -28,7 +28,7 @@ type UserLoader interface {
 type Server struct {
 	cfg      *config.Config
 	sessions *auth.Sessions
-	google   *auth.Google // nil when Google sign-in is not configured
+	google   googleAuth // nil when Google sign-in is not configured
 	users    UserLoader
 	accounts *account.Service
 	leave    *leave.Service
@@ -37,6 +37,13 @@ type Server struct {
 	// calendarStore is the extra query behind GET /api/calendar.
 	calendarStore leave.CalendarStore
 	today         func() time.Time
+}
+
+// googleAuth is the part of *auth.Google the handlers use, so tests can
+// stand in for Google without the network.
+type googleAuth interface {
+	AuthURL(state string) string
+	Exchange(ctx context.Context, code string) (*auth.GoogleIdentity, error)
 }
 
 // Deps are the services the HTTP layer calls.

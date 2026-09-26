@@ -1,3 +1,4 @@
+import { useState, type CSSProperties } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { Logo } from '@/components/Logo'
 import { useUser } from '@/features/auth/AuthProvider'
@@ -10,7 +11,11 @@ import { CalendarOverlayProvider } from './calendarOverlay'
 import { NAV, type NavItem } from './nav'
 import { useNewItems } from './useNewItems'
 
-/** Every signed-in page: --sidebar-w left sidebar on desktop, bottom tab bar on mobile. */
+// Desktop sidebar widths. --sidebar-w is set on the shell's root and used by
+// both the <nav> and the <main> offset, so they always move together.
+const SIDEBAR_W = { expanded: '240px', collapsed: '64px' }
+
+/** Every signed-in page: left sidebar on desktop, bottom tab bar on mobile. */
 export function AppShell() {
   const user = useUser()
   const isMobile = useIsMobile()
@@ -18,6 +23,8 @@ export function AppShell() {
   const status = new URLSearchParams(location.search).get('status')
   const dots = useNewItems(user.role === 'hr')
   const items = NAV[user.role]
+  const [collapsed] = useState(false)
+  const shellStyle = { '--sidebar-w': collapsed ? SIDEBAR_W.collapsed : SIDEBAR_W.expanded } as CSSProperties
 
   const links = items.map((item) => (
     <RailLink key={item.label} item={item} active={item.isActive(location.pathname, status)}
@@ -26,14 +33,14 @@ export function AppShell() {
 
   return (
     <CalendarOverlayProvider>
-      <div className="min-h-svh bg-background">
+      <div className="min-h-svh bg-background" style={shellStyle}>
         {isMobile ? (
           <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 flex h-[72px] items-center justify-around border-t bg-rail px-2 pb-[env(safe-area-inset-bottom)]">
             {links}
             <AccountMenu side="top" />
           </nav>
         ) : (
-          <nav aria-label="Main" className="fixed inset-y-0 left-0 z-30 flex w-[var(--sidebar-w)] flex-col border-r bg-rail px-3 py-4">
+          <nav aria-label="Main" className="fixed inset-y-0 left-0 z-30 flex w-[var(--sidebar-w)] flex-col border-r bg-rail px-3 py-4 transition-[width] duration-200 motion-reduce:transition-none">
             <Link to={homeFor(user)} aria-label="LeaveDesk home" className="mb-6 self-start rounded-lg px-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
               <Logo withName />
             </Link>
@@ -41,7 +48,7 @@ export function AppShell() {
             <AccountMenu className="mt-auto self-start" />
           </nav>
         )}
-        <main className={cn('mx-auto flex max-w-[1600px] flex-col', isMobile ? 'gap-4 px-4 pt-4 pb-24' : 'ml-[var(--sidebar-w)] gap-5 px-10 py-7')}>
+        <main className={cn('mx-auto flex max-w-[1600px] flex-col', isMobile ? 'gap-4 px-4 pt-4 pb-24' : 'ml-[var(--sidebar-w)] gap-5 px-10 py-7 transition-[margin] duration-200 motion-reduce:transition-none')}>
           <Outlet />
         </main>
         <TeamCalendarDialog />

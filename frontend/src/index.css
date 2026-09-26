@@ -5,12 +5,6 @@
 /* Dark mode is the .dark class on <html> (set by lib/theme.ts). */
 @custom-variant dark (&:is(.dark *));
 
-/* Desktop sidebar width. AppShell uses it for both the <nav> and the
-   <main> offset, so they always match; change it only here. */
-:root {
-  --sidebar-w: 240px;
-}
-
 /* ==========================================================================
    Design tokens — the ONLY place colours are defined.
    Both themes change colours only, never sizes or layout.

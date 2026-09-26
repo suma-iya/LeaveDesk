@@ -280,6 +280,12 @@ func (s *Store) AttachmentOwnedBy(ctx context.Context, fileID, userID string) er
 // InUserLock runs fn inside a transaction that holds an advisory lock for
 // this user; a second request from the same person waits for the first.
 func (s *Store) InUserLock(ctx context.Context, userID string, fn func(leave.Store) error) error {
+	return s.UserTx(ctx, userID, func(tx *Store) error { return fn(tx) })
+}
+
+// UserTx is the shared implementation: HR edits to someone's leave limits
+// take the same lock as that person's own submissions.
+func (s *Store) UserTx(ctx context.Context, userID string, fn func(*Store) error) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin: %w", err)

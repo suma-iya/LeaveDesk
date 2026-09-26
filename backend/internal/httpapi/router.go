@@ -33,6 +33,18 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /api/requests/{id}/cancel", s.active(s.cancelRequest))
 	mux.Handle("POST /api/requests/{id}/decision", s.hrOnly(s.decideRequest))
 	mux.Handle("GET /api/requests/{id}/overlaps", s.hrOnly(s.requestOverlaps))
+	mux.Handle("GET /api/requests/export.csv", s.hrOnly(s.exportRequests))
+
+	// HR
+	mux.Handle("GET /api/hr/registrations", s.hrOnly(s.registrations))
+	mux.Handle("POST /api/hr/registrations/{id}/approve", s.hrOnly(s.approveRegistration))
+	mux.Handle("POST /api/hr/registrations/{id}/reject", s.hrOnly(s.rejectRegistration))
+	mux.Handle("GET /api/hr/employees", s.hrOnly(s.employees))
+	mux.Handle("GET /api/hr/employees/export.csv", s.hrOnly(s.exportEmployees))
+	mux.Handle("GET /api/hr/employees/{id}", s.hrOnly(s.employee))
+	mux.Handle("PATCH /api/hr/employees/{id}", s.hrOnly(s.updateEmployee))
+	mux.Handle("GET /api/departments", s.active(s.departments))
+	mux.Handle("POST /api/departments", s.hrOnly(s.createDepartment))
 
 	mux.Handle("/api/", s.public(func(w http.ResponseWriter, r *http.Request) error {
 		writeErr(w, http.StatusNotFound, "NOT_FOUND", "No such endpoint.")

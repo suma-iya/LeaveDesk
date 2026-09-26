@@ -21,6 +21,7 @@ import (
 	"github.com/suma-iya/leavedesk/backend/internal/account"
 	"github.com/suma-iya/leavedesk/backend/internal/config"
 	"github.com/suma-iya/leavedesk/backend/internal/domain"
+	"github.com/suma-iya/leavedesk/backend/internal/hr"
 	"github.com/suma-iya/leavedesk/backend/internal/httpapi"
 	"github.com/suma-iya/leavedesk/backend/internal/leave"
 	"github.com/suma-iya/leavedesk/backend/internal/seed"
@@ -69,12 +70,8 @@ func serve() error {
 	defer db.Close()
 
 	server := &http.Server{
-		Addr: ":" + cfg.Port,
-		Handler: httpapi.NewServer(cfg, httpapi.Deps{
-			Users:    db,
-			Accounts: accounts(cfg, db),
-			Leave:    leave.NewService(db, leave.NewPolicy(cfg.DefaultLimits), today(cfg)),
-		}).Handler(),
+		Addr:              ":" + cfg.Port,
+		Handler:           handler(cfg, db),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	errs := make(chan error, 1)
@@ -115,6 +112,17 @@ func runSeed(args []string) error {
 	}
 	defer db.Close()
 	return seed.Run(ctx, db.Pool(), cfg.UploadDir, cfg.Location, *reset)
+}
+
+// handler wires store → services → HTTP.
+func handler(cfg *config.Config, db *store.Store) http.Handler {
+	leaves := leave.NewService(db, leave.NewPolicy(cfg.DefaultLimits), today(cfg))
+	return httpapi.NewServer(cfg, httpapi.Deps{
+		Users:    db,
+		Accounts: accounts(cfg, db),
+		Leave:    leaves,
+		HR:       hr.NewService(db, leaves, today(cfg)),
+	}).Handler()
 }
 
 // today is the current calendar day in the company timezone.

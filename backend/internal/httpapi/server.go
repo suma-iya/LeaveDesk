@@ -13,6 +13,7 @@ import (
 	"github.com/suma-iya/leavedesk/backend/internal/auth"
 	"github.com/suma-iya/leavedesk/backend/internal/config"
 	"github.com/suma-iya/leavedesk/backend/internal/domain"
+	"github.com/suma-iya/leavedesk/backend/internal/hr"
 	"github.com/suma-iya/leavedesk/backend/internal/leave"
 )
 
@@ -30,6 +31,7 @@ type Server struct {
 	users    UserLoader
 	accounts *account.Service
 	leave    *leave.Service
+	hr       *hr.Service
 	today    func() time.Time
 }
 
@@ -38,6 +40,7 @@ type Deps struct {
 	Users    UserLoader
 	Accounts *account.Service
 	Leave    *leave.Service
+	HR       *hr.Service
 }
 
 func NewServer(cfg *config.Config, d Deps) *Server {
@@ -47,6 +50,7 @@ func NewServer(cfg *config.Config, d Deps) *Server {
 		users:    d.Users,
 		accounts: d.Accounts,
 		leave:    d.Leave,
+		hr:       d.HR,
 		today:    func() time.Time { return domain.DateOf(time.Now().In(cfg.Location)).Time },
 	}
 	if cfg.GoogleEnabled() {

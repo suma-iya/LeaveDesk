@@ -1,19 +1,19 @@
-# ---- Build stage: compile a static Go binary ----
+# ---- Build: compile a static binary ----
 FROM golang:1.23-alpine AS build
 WORKDIR /src
-
-# Download modules first so this layer is cached until go.mod/go.sum change.
-COPY go.mod go.sum ./
+COPY go.mod go.sum* ./
 RUN go mod download
-
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/leavedesk ./cmd/leavedesk
 
-# ---- Run stage: tiny image with just the binary ----
+# ---- Run: small image with just the binary ----
 FROM alpine:3.20
-# tzdata: APP_TIMEZONE lookup; ca-certificates: HTTPS call to Google.
-RUN apk add --no-cache ca-certificates tzdata && adduser -D -u 10001 app
+# tzdata for APP_TIMEZONE, ca-certificates for Google sign-in over HTTPS.
+RUN apk add --no-cache ca-certificates tzdata && adduser -D -u 10001 app \
+    && mkdir -p /data/uploads && chown app /data/uploads
 USER app
-COPY --from=build /out/api /usr/local/bin/api
+WORKDIR /app
+COPY --from=build /out/leavedesk /app/leavedesk
 EXPOSE 8080
-ENTRYPOINT ["api"]
+ENTRYPOINT ["/app/leavedesk"]
+CMD ["serve"]

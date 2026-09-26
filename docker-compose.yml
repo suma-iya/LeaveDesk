@@ -1,16 +1,14 @@
-# Three containers on one private network:
-#   browser → frontend (nginx :80, published as 3000) → backend (Go :8080) → db (Postgres :5432)
-# Only the frontend port is published; the API and database are reachable
-# from other containers by service name (e.g. http://backend:8080).
+# browser → frontend (nginx :80, published as 3000) → backend (Go :8080) → db (Postgres :5432)
+# Only the frontend is published, so the browser and the API share one origin.
 
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-leave_tracker}
-      POSTGRES_USER: ${POSTGRES_USER:-leave}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-leave_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-leavedesk}
+      POSTGRES_USER: ${POSTGRES_USER:-leavedesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-leavedesk_secret}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -24,20 +22,24 @@ services:
     restart: unless-stopped
     depends_on:
       db:
-        condition: service_healthy   # wait until Postgres accepts connections
+        condition: service_healthy
     environment:
       PORT: "8080"
-      DATABASE_URL: postgres://${POSTGRES_USER:-leave}:${POSTGRES_PASSWORD:-leave_secret}@db:5432/${POSTGRES_DB:-leave_tracker}?sslmode=disable
+      DATABASE_URL: postgres://${POSTGRES_USER:-leavedesk}:${POSTGRES_PASSWORD:-leavedesk_secret}@db:5432/${POSTGRES_DB:-leavedesk}?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
-      JWT_TTL: ${JWT_TTL:-24h}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      MANAGER_EMAILS: ${MANAGER_EMAILS:-}
-      GOOGLE_AUTO_SIGNUP: ${GOOGLE_AUTO_SIGNUP:-true}
-      SEED_MANAGER_NAME: ${SEED_MANAGER_NAME:-Default Manager}
-      SEED_MANAGER_EMAIL: ${SEED_MANAGER_EMAIL:-manager@example.com}
-      SEED_MANAGER_PASSWORD: ${SEED_MANAGER_PASSWORD:-manager123}
-      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      SESSION_TTL: ${SESSION_TTL:-8h}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Dhaka}
+      UPLOAD_DIR: /data/uploads
+      LEAVE_DEFAULT_ANNUAL: ${LEAVE_DEFAULT_ANNUAL:-16}
+      LEAVE_DEFAULT_CASUAL: ${LEAVE_DEFAULT_CASUAL:-3}
+      LEAVE_DEFAULT_SICK: ${LEAVE_DEFAULT_SICK:-3}
+      ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-http://localhost:3000/api/auth/google/callback}
+    volumes:
+      - uploads:/data/uploads   # attachments and avatars, named by random UUID
     expose:
       - "8080"
     healthcheck:
@@ -47,10 +49,7 @@ services:
       retries: 5
 
   frontend:
-    build:
-      context: ./frontend
-      args:
-        VITE_USE_MOCK: ${VITE_USE_MOCK:-true}
+    build: ./frontend
     restart: unless-stopped
     depends_on:
       backend:
@@ -60,3 +59,4 @@ services:
 
 volumes:
   pgdata:
+  uploads:

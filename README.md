@@ -89,20 +89,58 @@ docker compose exec backend /app/leavedesk demote --email someone@company.test
 
 `demote` refuses to remove the last HR.
 
-**Google sign-in (optional).** Create an OAuth client of type "Web application" with the redirect URI `http://localhost:3000/api/auth/google/callback`. Put its ID and secret in `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, then run `docker compose up -d` again. Google signs people in to existing accounts; new people register first, because Google doesn't provide a date of birth. Email and password work without any Google configuration.
-
 **Other commands**
 
 | Command | What it does |
 |---|---|
 | `make test` | `go vet` and the Go tests, run in a Go container |
-| `cd frontend && npm test` | The TypeScript unit tests (`lib/leave.ts`), using Node's built-in test runner |
+| `cd frontend && npm test` | The TypeScript unit tests (`lib/leave.ts` and the sign-in and register pages), using Node's built-in test runner |
 | `make logs` | Follows the API's JSON request log |
 | `make reset` | `docker compose down -v`, which deletes the database and uploaded files |
 
 **Development without Docker for the UI:** run `cd frontend && npm install`, then `API_PROXY=http://localhost:3000 npm run dev` while the stack runs. Vite proxies `/api` to it, just as nginx does.
 
-**Google sign-in in dev mode (port 5173).** Google sends the browser back to `GOOGLE_REDIRECT_URL`, so it must point at the port you have open. Set `GOOGLE_REDIRECT_URL=http://localhost:5173/api/auth/google/callback` in `.env`, add that URI under "Authorised redirect URIs" (and `http://localhost:5173` under "Authorised JavaScript origins") in Google Cloud Console, and recreate the backend. Vite forwards the callback to the API, and the API's redirects are relative, so you stay on 5173. Switch the value back to the `:3000` URI when you use the Docker UI again.
+### Google sign-in (optional)
+
+Email and password always work. The "Continue with Google" button appears only when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set; leave either empty to turn it off.
+
+**1. Google Cloud Console** (Google Auth Platform, or APIs & Services → Credentials):
+
+1. **OAuth consent screen.** User type **External**, publishing status **Testing**. Under **Audience → Test users**, add every Google account that should be able to sign in.
+2. **Clients → Create client → Web application.**
+   - Authorised JavaScript origins: `http://localhost:3000`
+   - Authorised redirect URIs: `http://localhost:3000/api/auth/google/callback`
+
+   Save. Changes can take a few minutes to apply. If the redirect URI is missing or different, Google shows `redirect_uri_mismatch`.
+3. Copy the client ID and secret. Keep the downloaded `client_secret_*.json` outside the repo folder and never commit it.
+
+The app asks only for `openid email profile`, which need no Google review.
+
+**2. `.env`** (git-ignored; these values never go in the code or a commit):
+
+```bash
+GOOGLE_CLIENT_ID=<client ID>
+GOOGLE_CLIENT_SECRET=<client secret>
+GOOGLE_REDIRECT_URL=http://localhost:3000/api/auth/google/callback
+ALLOWED_EMAIL_DOMAINS=
+```
+
+Then run `docker compose up --build` (or `docker compose up -d --force-recreate backend`). `GET /api/auth/bootstrap` returns `"google": true` once both values are set.
+
+**3. What people see**
+
+- **Existing account.** The first Google sign-in links the Google account to the account with the same email; later sign-ins match on Google's account id. The person lands on their home page.
+- **New person.** Google doesn't share a date of birth, so after Google the person lands on "Create an account" with first name, last name and email filled in (email locked) and no password fields. They enter only their date of birth (18+). The first account ever still becomes HR. The account has no password; the Profile page offers "Set a password", and until then email/password sign-in fails with the usual "Wrong email or password."
+- **Cancel** on Google's screen returns to Sign in with "Google sign-in was cancelled." Other failures (expired attempt, unverified Google email, wrong domain, an email already linked to a different Google account) each show their own message there.
+
+**Dev mode (port 5173).** Google sends the browser back to `GOOGLE_REDIRECT_URL`, so it must match the port you have open. Set `GOOGLE_REDIRECT_URL=http://localhost:5173/api/auth/google/callback` in `.env`, add that URI under "Authorised redirect URIs" (and `http://localhost:5173` under "Authorised JavaScript origins"), recreate the backend and run `API_PROXY=http://localhost:3000 npm run dev`. Vite forwards the callback to the API, and the API's redirects are relative, so you stay on 5173. Switch back to the `:3000` URI when you use the Docker UI again.
+
+**Limitations**
+
+- In **Testing** mode only the listed test users can sign in; anyone else gets Google's "Access blocked" screen. Publishing the app to production removes the list.
+- `ALLOWED_EMAIL_DOMAINS` also applies to Google: the ID token's `hd` (hosted domain) claim must be in the list. Personal Gmail accounts have no `hd`, so they are rejected when the list is set. Leave it empty to test with Gmail.
+
+How the flow works, and why the ID token is verified on the server, is in [docs/EXPLANATION.md](docs/EXPLANATION.md#9-google-sign-in).
 
 ## 4. Architecture
 
@@ -170,7 +208,7 @@ All endpoints are under `/api`. Errors look like `{"error": "CODE", "message": "
 |---|---|
 | `GET /health` | public |
 | `GET /auth/bootstrap` · `POST /auth/register` · `POST /auth/login` · `POST /auth/logout` | public |
-| `GET /auth/google/start` · `GET /auth/google/callback` | public (only when configured) |
+| `GET /auth/google/start` · `GET /auth/google/callback` · `GET /auth/google/pending` · `POST /auth/google/complete` | public (only when configured) |
 | `GET /me` · `PATCH /me` · `POST /me/password` · `GET /me/balances?year=` | signed in |
 | `GET /requests?scope=mine\|all&status=&type=&department=&q=&from=&to=&year=&page=&pageSize=` | signed in (`scope=all`: HR) |
 | `POST /requests` (JSON or multipart with `attachment`) · `GET /requests/{id}` · `PATCH /requests/{id}` · `POST /requests/{id}/cancel` | signed in; owner or HR |

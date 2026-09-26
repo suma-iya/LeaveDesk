@@ -133,7 +133,15 @@ func (s *Service) GoogleSignIn(ctx context.Context, id *auth.GoogleIdentity) (*d
 	if err != nil {
 		return nil, err
 	}
+	// Never let a second Google account take over an already-linked one.
+	errLinked := domain.Conflict("GOOGLE_LINKED", "%s is already linked to a different Google account. Sign in with that one, or use your password.", id.Email)
+	if u.GoogleSub != nil {
+		return nil, errLinked
+	}
 	if err := s.store.LinkGoogle(ctx, u.ID, id.Subject); err != nil {
+		if errors.Is(err, domain.ErrConflict) {
+			return nil, errLinked
+		}
 		return nil, err
 	}
 	return u, nil

@@ -92,9 +92,17 @@ func (s *Store) CreateUser(ctx context.Context, n NewUser, decide func(hasHR boo
 	return s.UserByID(ctx, id)
 }
 
+// LinkGoogle sets google_sub only if the account has none yet. It returns
+// ErrConflict when the account is already linked (e.g. a concurrent link).
 func (s *Store) LinkGoogle(ctx context.Context, userID, sub string) error {
-	_, err := s.db.Exec(ctx, `UPDATE users SET google_sub = $1 WHERE id = $2 AND google_sub IS NULL`, sub, userID)
-	return translate(err, "link google")
+	tag, err := s.db.Exec(ctx, `UPDATE users SET google_sub = $1 WHERE id = $2 AND google_sub IS NULL`, sub, userID)
+	if err != nil {
+		return translate(err, "link google")
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("link google: %w", domain.ErrConflict)
+	}
+	return nil
 }
 
 func (s *Store) UpdateProfile(ctx context.Context, userID, first, last string, dob domain.Date, avatarFileID *string) error {

@@ -4,11 +4,14 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/suma-iya/leavedesk/backend/internal/account"
+	"github.com/suma-iya/leavedesk/backend/internal/auth"
 	"github.com/suma-iya/leavedesk/backend/internal/domain"
 )
 
@@ -83,6 +86,7 @@ func (s *Server) googleStart(w http.ResponseWriter, r *http.Request) error {
 
 // GET /api/auth/google/callback — Google sends the browser back here.
 // Success signs in and goes to the app; failure goes to /login?error=...
+// Raw Google errors are logged, never shown.
 func (s *Server) googleCallback(w http.ResponseWriter, r *http.Request) error {
 	if s.google == nil {
 		return domain.NotFound("Google sign-in is not configured.")
@@ -91,28 +95,59 @@ func (s *Server) googleCallback(w http.ResponseWriter, r *http.Request) error {
 		http.Redirect(w, r, "/login?error="+url.QueryEscape(message), http.StatusFound)
 		return nil
 	}
-	cookie, err := r.Cookie(stateCookie)
-	state := r.URL.Query().Get("state")
-	if err != nil || state == "" || subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(state)) != 1 {
-		return back("Google sign-in expired. Please try again.")
+	// The state is single use: clear it whatever happens next.
+	cookie, cookieErr := r.Cookie(stateCookie)
+	http.SetCookie(w, &http.Cookie{Name: stateCookie, Value: "", Path: "/api/auth/google", MaxAge: -1,
+		HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: s.cfg.CookieSecure})
+
+	q := r.URL.Query()
+	if googleErr := q.Get("error"); googleErr != "" {
+		if googleErr == "access_denied" { // the user pressed Cancel
+			return back("Google sign-in was cancelled.")
+		}
+		slog.Warn("google returned an error", "error", googleErr)
+		return back("Google sign-in failed. Please try again.")
 	}
-	identity, err := s.google.Exchange(r.Context(), r.URL.Query().Get("code"))
+	state := q.Get("state")
+	if cookieErr != nil || state == "" || subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(state)) != 1 {
+		return back("Your Google sign-in expired or was started in another tab. Please try again.")
+	}
+	code := q.Get("code")
+	if code == "" {
+		slog.Warn("google callback without a code")
+		return back("Google sign-in failed. Please try again.")
+	}
+	identity, err := s.google.Exchange(r.Context(), code)
 	if err != nil {
 		slog.Warn("google sign-in rejected", "err", err)
-		return back("Google sign-in could not be verified.")
+		return back(s.googleRejection(err))
 	}
 	u, err := s.accounts.GoogleSignIn(r.Context(), identity)
 	if err != nil {
 		if de, ok := domain.AsError(err); ok {
 			return back(de.Message)
 		}
-		return err
+		slog.Error("google sign-in failed", "err", err)
+		return back("Something went wrong. Please try again.")
 	}
 	if err := s.sessions.Start(w, u); err != nil {
 		return err
 	}
 	http.Redirect(w, r, "/", http.StatusFound)
 	return nil
+}
+
+// googleRejection turns a failed exchange or verification into a message
+// the sign-in page can show.
+func (s *Server) googleRejection(err error) string {
+	switch {
+	case errors.Is(err, auth.ErrEmailNotVerified):
+		return "Your Google email address is not verified. Verify it with Google, then try again."
+	case errors.Is(err, auth.ErrDomainNotAllowed):
+		return "Use your company Google account (" + strings.Join(s.cfg.AllowedEmailDomains, ", ") + ")."
+	default:
+		return "We couldn't verify your Google sign-in. Please try again."
+	}
 }
 
 // GET /api/me — the signed-in user plus this year's balance per type.

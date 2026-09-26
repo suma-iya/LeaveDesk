@@ -35,6 +35,12 @@ type GoogleIdentity struct {
 	Subject, Email, FirstName, LastName string
 }
 
+// Verify failures the sign-in page explains in its own words.
+var (
+	ErrEmailNotVerified = errors.New("google email is not verified")
+	ErrDomainNotAllowed = errors.New("google account is not in an allowed domain")
+)
+
 func NewGoogle(clientID, secret, redirect string, allowedDomains []string) *Google {
 	return &Google{ClientID: clientID, ClientSecret: secret, RedirectURL: redirect,
 		AllowedDomains: allowedDomains, client: &http.Client{Timeout: 10 * time.Second}}
@@ -69,9 +75,10 @@ func (g *Google) Exchange(ctx context.Context, code string) (*GoogleIdentity, er
 	defer resp.Body.Close()
 	var body struct {
 		IDToken string `json:"id_token"`
+		Error   string `json:"error"` // e.g. invalid_grant, invalid_client; never secret
 	}
-	if resp.StatusCode != http.StatusOK || json.NewDecoder(resp.Body).Decode(&body) != nil || body.IDToken == "" {
-		return nil, fmt.Errorf("google token exchange failed: status %d", resp.StatusCode)
+	if json.NewDecoder(resp.Body).Decode(&body) != nil || resp.StatusCode != http.StatusOK || body.IDToken == "" {
+		return nil, fmt.Errorf("google token exchange failed: status %d %s", resp.StatusCode, body.Error)
 	}
 	return g.Verify(ctx, body.IDToken)
 }
@@ -100,10 +107,10 @@ func (g *Google) Verify(ctx context.Context, idToken string) (*GoogleIdentity, e
 		return nil, errors.New("google token has an unexpected issuer")
 	}
 	if !claims.EmailVerified {
-		return nil, errors.New("google email is not verified")
+		return nil, ErrEmailNotVerified
 	}
 	if len(g.AllowedDomains) > 0 && !slices.Contains(g.AllowedDomains, strings.ToLower(claims.HostedDomain)) {
-		return nil, errors.New("google account is not in an allowed domain")
+		return nil, ErrDomainNotAllowed
 	}
 	return &GoogleIdentity{Subject: claims.Subject, Email: strings.ToLower(claims.Email),
 		FirstName: claims.GivenName, LastName: claims.FamilyName}, nil

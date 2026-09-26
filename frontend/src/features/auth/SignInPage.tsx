@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { LogIn } from 'lucide-react'
@@ -17,7 +17,13 @@ export function SignInPage() {
   const { signedIn } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
+  // Google sends failures back as /login?error=...: keep the message, then
+  // drop it from the URL so a refresh doesn't show it again.
+  const [redirectError, setRedirectError] = useState(() => params.get('error'))
+  useEffect(() => {
+    if (params.has('error')) setParams((p) => { p.delete('error'); return p }, { replace: true, state: location.state })
+  }, [params, setParams, location.state])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const bootstrap = useQuery({ queryKey: keys.bootstrap, queryFn: api.auth.bootstrap })
@@ -33,10 +39,10 @@ export function SignInPage() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
+    setRedirectError(null)
     login.mutate()
   }
-  // Google sends failures back as /login?error=...
-  const error = login.error?.message ?? params.get('error')
+  const error = login.error?.message ?? redirectError
 
   return (
     <AuthLayout title="Sign in">

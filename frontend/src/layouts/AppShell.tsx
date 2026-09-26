@@ -10,7 +10,7 @@ import { CalendarOverlayProvider } from './calendarOverlay'
 import { NAV, type NavItem } from './nav'
 import { useNewItems } from './useNewItems'
 
-/** Every signed-in page: 80px left rail on desktop, bottom tab bar on mobile. */
+/** Every signed-in page: --sidebar-w left sidebar on desktop, bottom tab bar on mobile. */
 export function AppShell() {
   const user = useUser()
   const isMobile = useIsMobile()
@@ -33,15 +33,15 @@ export function AppShell() {
             <AccountMenu side="top" />
           </nav>
         ) : (
-          <nav aria-label="Main" className="fixed inset-y-0 left-0 z-30 flex w-20 flex-col items-center border-r bg-rail py-4">
-            <Link to={homeFor(user)} aria-label="LeaveDesk home" className="mb-6 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
-              <Logo />
+          <nav aria-label="Main" className="fixed inset-y-0 left-0 z-30 flex w-[var(--sidebar-w)] flex-col border-r bg-rail px-3 py-4">
+            <Link to={homeFor(user)} aria-label="LeaveDesk home" className="mb-6 self-start rounded-lg px-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+              <Logo withName />
             </Link>
             <div className="flex flex-col gap-1">{links}</div>
-            <AccountMenu className="mt-auto" />
+            <AccountMenu className="mt-auto self-start" />
           </nav>
         )}
-        <main className={cn('mx-auto flex max-w-[1600px] flex-col', isMobile ? 'gap-4 px-4 pt-4 pb-24' : 'ml-20 gap-5 px-10 py-7')}>
+        <main className={cn('mx-auto flex max-w-[1600px] flex-col', isMobile ? 'gap-4 px-4 pt-4 pb-24' : 'ml-[var(--sidebar-w)] gap-5 px-10 py-7')}>
           <Outlet />
         </main>
         <TeamCalendarDialog />
@@ -50,7 +50,10 @@ export function AppShell() {
   )
 }
 
-/** 64×58 item: 20px icon over an 11px label; active = sunk + 3px accent bar. */
+/**
+ * Desktop: a full-width 36px row, 18px icon beside the label; active = sunk
+ * + 3px accent bar on the sidebar's edge. Mobile: 64×58, icon over label.
+ */
 function RailLink({ item, active, dot, mobile }: { item: NavItem; active: boolean; dot: boolean; mobile: boolean }) {
   const Icon = item.icon
   return (
@@ -58,14 +61,17 @@ function RailLink({ item, active, dot, mobile }: { item: NavItem; active: boolea
       to={item.to}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'relative flex h-[58px] w-16 flex-col items-center justify-center gap-1 rounded-md text-[11px] font-semibold transition-colors',
+        'relative flex rounded-md transition-colors',
+        mobile
+          ? 'h-[58px] w-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold'
+          : 'h-9 w-full items-center gap-2.5 px-2.5 text-[13.5px] font-medium',
         'focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
         active ? 'bg-sunk text-foreground' : 'text-muted-foreground hover:bg-soft-hover hover:text-foreground',
-        active && !mobile && 'before:absolute before:top-2.5 before:bottom-2.5 before:-left-2 before:w-[3px] before:rounded-r before:bg-highlight',
+        active && !mobile && 'before:absolute before:top-2 before:bottom-2 before:-left-3 before:w-[3px] before:rounded-r before:bg-highlight',
       )}
     >
       <span className="relative">
-        <Icon className="size-5" aria-hidden />
+        <Icon className={mobile ? 'size-5' : 'size-[18px]'} aria-hidden />
         {dot && <span className="absolute -top-0.5 -right-1 size-2 rounded-full bg-pending ring-2 ring-rail" aria-label="New" />}
       </span>
       {item.label}

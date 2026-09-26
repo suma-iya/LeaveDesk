@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Camera, Moon, Save, Sun } from 'lucide-react'
+import { Camera, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api'
 import { keys } from '@/api/queries'
@@ -15,7 +15,6 @@ import { Label } from '@/components/ui/label'
 import { useUser } from '@/features/auth/AuthProvider'
 import { ageOn, fullName } from '@/lib/format'
 import { inputHeight } from '@/lib/styles'
-import { useTheme, type Theme } from '@/lib/theme'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { cn } from '@/lib/utils'
 
@@ -24,7 +23,6 @@ export function ProfilePage() {
   const user = useUser()
   const client = useQueryClient()
   const isMobile = useIsMobile()
-  const { theme, setTheme } = useTheme()
   const photo = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({ firstName: user.firstName, lastName: user.lastName, dateOfBirth: user.dateOfBirth })
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' })
@@ -124,18 +122,6 @@ export function ProfilePage() {
               <Input id="confirm" type="password" autoComplete="new-password" value={pw.confirm} onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))} className={inputHeight} />
             </FieldBox>
             {pwError && <p className="text-xs text-danger">{pwError}</p>}
-          </Card>
-          <Card className="flex items-center justify-between gap-4 p-5">
-            <CardTitle>Theme</CardTitle>
-            <div className="flex rounded-md bg-sunk p-0.5" role="radiogroup" aria-label="Theme">
-              {([['light', Sun, 'Light'], ['dark', Moon, 'Dark']] as [Theme, typeof Sun, string][]).map(([value, Icon, label]) => (
-                <button key={value} type="button" role="radio" aria-checked={theme === value} onClick={() => setTheme(value)}
-                  className={cn('flex h-9 items-center gap-1.5 rounded-[6px] px-3 text-sm font-medium max-md:h-11 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-                    theme === value ? 'bg-surface shadow-sm' : 'text-muted-foreground')}>
-                  <Icon className="size-4" aria-hidden />{label}
-                </button>
-              ))}
-            </div>
           </Card>
         </div>
       </div>

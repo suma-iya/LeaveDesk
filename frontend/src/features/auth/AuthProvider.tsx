@@ -45,17 +45,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [queryClient])
 
+  // Drop every cached query except /me, which is updated in place: the
+  // mounted useQuery above stays subscribed to it (clear() would orphan it).
+  const forgetOtherData = useCallback(() => {
+    queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== keys.me[0] })
+  }, [queryClient])
+
   const signedIn = useCallback((user: User) => {
-    queryClient.clear()
+    forgetOtherData()
     queryClient.setQueryData(keys.me, { user })
     void queryClient.invalidateQueries({ queryKey: keys.me })
-  }, [queryClient])
+  }, [queryClient, forgetOtherData])
 
   const signOut = useCallback(async () => {
     await api.auth.logout().catch(() => {})
-    queryClient.clear()
+    forgetOtherData()
     queryClient.setQueryData(keys.me, null)
-  }, [queryClient])
+  }, [queryClient, forgetOtherData])
 
   const value = useMemo<AuthContextValue>(() => ({
     user: me.data === undefined ? undefined : me.data?.user ?? null,

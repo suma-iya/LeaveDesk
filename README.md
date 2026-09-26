@@ -22,7 +22,7 @@ The written explanation (architecture, key components, API internals, Docker) is
 | **My leave:** available days in total and per type (Annual 16, Casual 3, Sick 3), shown as stacked used/pending bars | **Pending:** every waiting request, with each person's yearly "8/22 used" bar |
 | **Request leave:** a month picker where Fri and Sat are never counted, a live working-day count, and the same validation as the server | **Approve / Reject** from the table or the review page. Rejecting asks for an optional note. A toast offers **Undo** for 5 seconds |
 | Edit or cancel a request while it is pending. **Request again** after a rejection | **Review page:** employee card, "If approved: N days left", teammates away on the same dates, the attachment |
-| **History** of decided requests with HR's note | **Approved** and **All** tables. All has a **Mine** chip so HR can find their own requests |
+| **History** of decided requests with HR's note | **Approved** and **All** tables |
 | **Request details** with an in-page PDF preview | **People:** everyone's leave this year; change a person's department, salary (with history) and leave limits |
 | **Team calendar** overlay showing who is away each day | The same calendar, plus CSV **Export** of any table |
 | **Profile:** photo, name, date of birth, password, light/dark theme | The same profile page |

@@ -65,7 +65,7 @@ function RequestForm({ editing, copyFrom }: { editing?: LeaveRequest; copyFrom?:
   const year = start ? Number(start.slice(0, 4)) : month.getFullYear()
   const balances = useQuery({ queryKey: keys.balances(year), queryFn: () => api.me.balances(year) }).data
 
-  const home = user.role === 'hr' ? '/hr/requests?status=all&mine=1' : '/me'
+  const home = user.role === 'hr' ? '/hr/requests?status=all' : '/me'
   const backTo = editing ? (user.role === 'hr' ? `/hr/requests/${editing.id}` : `/me/requests/${editing.id}`) : home
 
   // First click sets start = end; second click sets the end; a click before

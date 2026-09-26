@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useUser } from '@/features/auth/AuthProvider'
 import { yearlySegments } from '@/features/employee/BalanceCards'
 import { formatDate, formatRange } from '@/lib/dates'
-import { formatBDT, fullName, tenure } from '@/lib/format'
+import { ROLE_LABEL, formatBDT, fullName, tenure } from '@/lib/format'
 import { LEAVE_TYPES, TYPE_LABEL, sumBalances } from '@/lib/leave'
 import { inputHeight } from '@/lib/styles'
 import { useIsMobile } from '@/lib/useIsMobile'
@@ -192,7 +192,7 @@ function EmployeeForm({ detail }: { detail: EmployeeDetail }) {
         <Avatar name={fullName(e)} src={e.avatarUrl} size={64} />
         <div className="min-w-0">
           <p className="truncate text-[17px] font-bold">{fullName(e)}</p>
-          <p className="text-[13px] text-muted-foreground">{e.role === 'hr' ? 'HR' : 'Employee'}</p>
+          <p className="text-[13px] text-muted-foreground">{ROLE_LABEL[e.role]}</p>
         </div>
       </div>
       <div>

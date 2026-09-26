@@ -13,7 +13,7 @@ import { StickyBar } from '@/components/StickyBar'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUser } from '@/features/auth/AuthProvider'
-import { ageOn, fullName } from '@/lib/format'
+import { ROLE_LABEL, ageOn, fullName } from '@/lib/format'
 import { inputHeight } from '@/lib/styles'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { cn } from '@/lib/utils'
@@ -84,7 +84,7 @@ export function ProfilePage() {
             </div>
             <div className="min-w-0">
               <p className="truncate text-[17px] font-bold">{fullName(user)}</p>
-              <p className="text-[13px] text-muted-foreground">{user.role === 'hr' ? 'HR' : 'Employee'} · {user.department?.name ?? 'No department'}</p>
+              <p className="text-[13px] text-muted-foreground">{ROLE_LABEL[user.role]} · {user.department?.name ?? 'No department'}</p>
               {photoError && <p role="alert" className="mt-1 text-xs text-danger">{photoError}</p>}
             </div>
           </Card>

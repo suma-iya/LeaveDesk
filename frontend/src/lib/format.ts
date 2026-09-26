@@ -1,6 +1,10 @@
 import { differenceInMonths, parseISO } from 'date-fns'
+import type { Role } from '@/types'
 
 export const fullName = (p: { firstName: string; lastName: string }) => `${p.firstName} ${p.lastName}`
+
+/** How each role is written in the UI. */
+export const ROLE_LABEL: Record<Role, string> = { hr: 'HR', employee: 'Employee' }
 
 /** 84 KB, 1.2 MB */
 export function formatBytes(bytes: number) {

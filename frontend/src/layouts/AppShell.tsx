@@ -69,7 +69,7 @@ export function AppShell() {
         {isMobile ? (
           <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 flex h-[72px] items-center justify-around border-t bg-rail px-2 pb-[env(safe-area-inset-bottom)]">
             {links}
-            <AccountMenu side="top" />
+            <AccountMenu layout="mobile" />
           </nav>
         ) : (
           <nav id={NAV_ID} aria-label="Main"
@@ -86,7 +86,7 @@ export function AppShell() {
                 aria-expanded={!collapsed} aria-controls={NAV_ID} onClick={sidebar.toggle} />
             </div>
             <div className="flex flex-col gap-1">{links}</div>
-            <AccountMenu className={cn('mt-auto', collapsed ? 'self-center' : 'self-start')} />
+            <AccountMenu layout={collapsed ? 'collapsed' : 'expanded'} className={cn('mt-auto', collapsed && 'self-center')} />
           </nav>
         )}
         <main className={cn('mx-auto flex max-w-[1600px] flex-col',

@@ -133,10 +133,7 @@ function EmployeeForm({ detail }: { detail: EmployeeDetail }) {
 
   const salaryCard = (
     <Card className="flex flex-col gap-3 p-5">
-      <div className="flex items-baseline justify-between gap-2">
-        <CardTitle>Salary</CardTitle>
-        <span className="text-xs text-muted-foreground">Visible to HR only</span>
-      </div>
+      <CardTitle>Salary</CardTitle>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="monthly">Monthly (BDT)</Label>
@@ -204,9 +201,6 @@ function EmployeeForm({ detail }: { detail: EmployeeDetail }) {
         <InfoRow icon={CalendarDays} label="Date of birth" value={formatDate(e.dateOfBirth)} />
         <InfoRow icon={Briefcase} label="Joined" value={e.joinedOn ? `${formatDate(e.joinedOn)} · ${tenure(e.joinedOn)}` : '—'} />
       </div>
-      <p className="rounded-tile bg-sunk p-3 text-xs text-muted-foreground">
-        Name, email, date of birth and password belong to the employee. HR can't change them.
-      </p>
     </Card>
   )
 

@@ -31,7 +31,7 @@ function RejectForm({ request, onCancel, onConfirm }: { request: LeaveRequest; o
       </DialogHeader>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="reject-note">Note (optional)</Label>
-        <Textarea id="reject-note" value={note} maxLength={1000} onChange={(e) => setNote(e.target.value)} placeholder="Visible to the employee" autoFocus />
+        <Textarea id="reject-note" value={note} maxLength={1000} onChange={(e) => setNote(e.target.value)} autoFocus />
       </div>
       <DialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
         <AppButton icon={X} label="Cancel" onClick={onCancel} />

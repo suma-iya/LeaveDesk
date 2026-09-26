@@ -72,15 +72,14 @@ export function RegisterPage() {
             <Input id="lastName" autoComplete="family-name" required value={form.lastName} onChange={set('lastName')} className={authInput} />
           </Field>
         </div>
-        <Field id="dateOfBirth" label="Date of birth" error={problems.dateOfBirth}
-          hint={age !== null ? `You are ${age}.` : 'You must be 18 or older.'}>
+        <Field id="dateOfBirth" label="Date of birth" error={problems.dateOfBirth}>
           <Input id="dateOfBirth" type="date" required value={form.dateOfBirth} onChange={set('dateOfBirth')} className={authInput}
             max={new Date().toISOString().slice(0, 10)} aria-invalid={Boolean(problems.dateOfBirth)} />
         </Field>
-        <Field id="email" label="Email" hint="Use your company email.">
+        <Field id="email" label="Email">
           <Input id="email" type="email" autoComplete="email" required value={form.email} onChange={set('email')} className={authInput} />
         </Field>
-        <Field id="password" label="Password" error={problems.password} hint={form.password ? `Strength: ${STRENGTH[strength]}` : 'At least 8 characters.'}>
+        <Field id="password" label="Password" error={problems.password} hint={form.password ? `Strength: ${STRENGTH[strength]}` : undefined}>
           <Input id="password" type="password" autoComplete="new-password" required value={form.password} onChange={set('password')}
             className={authInput} aria-invalid={Boolean(problems.password)} />
           <div className="grid grid-cols-4 gap-1" aria-hidden>

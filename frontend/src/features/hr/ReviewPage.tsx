@@ -127,7 +127,7 @@ export function ReviewPage() {
       <CardTitle>Decision</CardTitle>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="decision-note">Note</Label>
-        <Textarea id="decision-note" value={note} maxLength={1000} onChange={(e) => setNote(e.target.value)} placeholder="Visible to the employee" />
+        <Textarea id="decision-note" value={note} maxLength={1000} onChange={(e) => setNote(e.target.value)} />
       </div>
       {!isMobile && (
         <div className="flex justify-end gap-2">

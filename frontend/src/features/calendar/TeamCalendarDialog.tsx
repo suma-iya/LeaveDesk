@@ -85,9 +85,8 @@ function CalendarBody({ onClose }: { onClose: () => void }) {
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
           <DialogTitle className="text-[22px] font-bold tracking-[-0.02em]">Team calendar</DialogTitle>
-          <DialogDescription className="mt-1 text-sm text-muted-foreground">
-            Click a day to see who is away. Fri and Sat are weekend. Press Esc to close.
-          </DialogDescription>
+          {/* Screen readers still get a description; nothing extra on screen. */}
+          <DialogDescription className="sr-only">Who is away on each day of the month.</DialogDescription>
         </div>
         <IconButton icon={X} label="Close calendar" variant="secondary" onClick={onClose} />
       </div>

@@ -61,7 +61,7 @@ export function AttachmentField({ value, onChange }: { value?: FileMeta | null; 
           dragging && 'border-highlight bg-highlight-soft')}
       >
         <p className="flex-1 text-[13px] text-muted-foreground">
-          <strong className="font-semibold text-foreground">Attachment (optional):</strong> medical note or plan, PDF, PNG or JPG up to 5 MB
+          <strong className="font-semibold text-foreground">Attachment (optional)</strong> · PDF, PNG or JPG, max 5 MB
         </p>
         <AppButton icon={Upload} label="Upload" loading={upload.isPending} onClick={() => input.current?.click()} />
         <input ref={input} type="file" accept={ACCEPT} className="sr-only" tabIndex={-1} aria-hidden

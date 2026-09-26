@@ -147,13 +147,13 @@ export function RequestDetailsPage() {
           {message}
           {response}
           {r.status === 'pending' && (
-            <Footer note="You can edit or cancel until HR decides.">
+            <Footer>
               <AppButton icon={X} label="Cancel request" variant="danger" onClick={() => setConfirmCancel(true)} />
               <AppButton icon={Pencil} label="Edit request" to={editLink} />
             </Footer>
           )}
           {r.status === 'rejected' && (
-            <Footer note="Rejected requests use no leave days.">
+            <Footer>
               <AppButton icon={RotateCw} label="Request again" variant="primary" to={againLink} />
             </Footer>
           )}
@@ -169,13 +169,8 @@ export function RequestDetailsPage() {
   )
 }
 
-function Footer({ note, children }: { note: string; children: ReactNode }) {
-  return (
-    <div className="flex items-center gap-2">
-      <p className="mr-auto text-[13px] text-muted-foreground">{note}</p>
-      {children}
-    </div>
-  )
+function Footer({ children }: { children: ReactNode }) {
+  return <div className="flex items-center justify-end gap-2">{children}</div>
 }
 
 /** Only once decided: green tint for approvals, red for rejections. */

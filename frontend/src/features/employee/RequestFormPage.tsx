@@ -138,8 +138,7 @@ function RequestForm({ editing, copyFrom }: { editing?: LeaveRequest; copyFrom?:
     <>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="reason">Reason</Label>
-        <Textarea id="reason" value={reason} maxLength={1000} onChange={(e) => setReason(e.target.value)}
-          placeholder="A short note for HR" className="min-h-20" />
+        <Textarea id="reason" value={reason} maxLength={1000} onChange={(e) => setReason(e.target.value)} className="min-h-20" />
       </div>
       <AttachmentField value={attachment} onChange={setAttachment} />
     </>

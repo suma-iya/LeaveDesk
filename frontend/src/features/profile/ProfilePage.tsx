@@ -87,7 +87,6 @@ export function ProfilePage() {
             <div className="min-w-0">
               <p className="truncate text-[17px] font-bold">{fullName(user)}</p>
               <p className="text-[13px] text-muted-foreground">{user.role === 'hr' ? 'HR' : 'Employee'} · {user.department?.name ?? 'No department'}</p>
-              <p className="mt-1 text-xs text-muted-foreground">JPG or PNG, square, up to 2 MB</p>
               {photoError && <p role="alert" className="mt-1 text-xs text-danger">{photoError}</p>}
             </div>
           </Card>
@@ -100,10 +99,10 @@ export function ProfilePage() {
               <FieldBox id="lastName" label="Last name">
                 <Input id="lastName" value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} className={inputHeight} />
               </FieldBox>
-              <FieldBox id="dob" label="Date of birth" hint={age === null ? undefined : age < 18 ? 'You must be at least 18.' : `Age ${age}`}>
+              <FieldBox id="dob" label="Date of birth" hint={age !== null && age < 18 ? 'You must be at least 18.' : undefined}>
                 <Input id="dob" type="date" value={form.dateOfBirth} onChange={(e) => setForm((f) => ({ ...f, dateOfBirth: e.target.value }))} className={inputHeight} />
               </FieldBox>
-              <FieldBox id="email" label="Email" hint="Your sign-in email can't be changed.">
+              <FieldBox id="email" label="Email">
                 <Input id="email" value={user.email} readOnly className={cn(inputHeight, 'bg-sunk')} />
               </FieldBox>
             </div>

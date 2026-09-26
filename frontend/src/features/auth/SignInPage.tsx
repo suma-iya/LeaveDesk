@@ -44,9 +44,9 @@ export function SignInPage() {
         <Field id="email" label="Email">
           <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={authInput} />
         </Field>
-        <Field id="password" label="Password" hint="Forgot it? Ask HR to reset your password.">
+        <Field id="password" label="Password">
           <Input id="password" type="password" autoComplete="current-password" required value={password}
-            onChange={(e) => setPassword(e.target.value)} className={authInput} aria-describedby="password-hint" />
+            onChange={(e) => setPassword(e.target.value)} className={authInput} />
         </Field>
         {error && <Alert tone="error">{error}</Alert>}
         <AppButton type="submit" icon={LogIn} label="Sign in" variant="primary" size="block" loading={login.isPending} />

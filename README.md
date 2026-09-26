@@ -156,7 +156,7 @@ nginx allows 6 MB request bodies for 5 MB attachments. It re-resolves `backend` 
 - There is no deactivation or offboarding flow, and there is no approval step for new accounts: anyone who can reach the sign-up page can create an employee account. Set `ALLOWED_EMAIL_DOMAINS` to restrict sign-ups to the company's email domain.
 - HR promotion and demotion are CLI-only.
 - There is a single approval step (employee → HR) with no team-lead step. With only one HR account, HR's own requests can't be decided until a second HR exists.
-- There is no password reset. The sign-in hint says "Ask HR", but by design HR cannot change passwords, so a reset needs a database operator. That is a gap to close before production.
+- There is no password reset. By design HR cannot change passwords, so a forgotten password needs a database operator. That is a gap to close before production.
 - A request that crosses New Year counts entirely against the year it starts in.
 - The audit log is written for every HR change but is not shown in the UI yet.
 

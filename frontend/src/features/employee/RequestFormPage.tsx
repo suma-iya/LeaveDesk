@@ -50,7 +50,8 @@ function RequestForm({ editing, copyFrom }: { editing?: LeaveRequest; copyFrom?:
   const isMobile = useIsMobile()
   const prefill = editing ?? copyFrom
   // The picker shows only this person's own leave (never teammates').
-  const mine = useMyRequests({ status: ['pending', 'approved'], pageSize: 100 }).data?.items ?? []
+  const mineData = useMyRequests({ status: ['pending', 'approved'], pageSize: 100 }).data
+  const mine = useMemo(() => mineData?.items ?? [], [mineData])
   const save = useSaveRequest(editing?.id)
 
   const [month, setMonth] = useState(() => startOfMonth(editing ? parseISO(editing.startDate) : new Date()))

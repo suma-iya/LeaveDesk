@@ -32,7 +32,7 @@ export function toQuery(params: Query) {
 }
 
 /** Calls /api{path}; throws ApiError with the server's {error, message}. */
-export async function request<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function request<T>(path: string, init: { method?: string; body?: unknown; keepalive?: boolean } = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' }
   let body: BodyInit | undefined
   if (init.body instanceof FormData) body = init.body
@@ -43,7 +43,7 @@ export async function request<T>(path: string, init: { method?: string; body?: u
 
   let response: Response
   try {
-    response = await fetch(`/api${path}`, { method: init.method ?? 'GET', headers, body, credentials: 'same-origin' })
+    response = await fetch(`/api${path}`, { method: init.method ?? 'GET', headers, body, credentials: 'same-origin', keepalive: init.keepalive })
   } catch {
     throw new ApiError(0, 'NETWORK', 'Cannot reach the server. Check your connection and try again.')
   }

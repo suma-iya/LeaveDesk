@@ -10,8 +10,8 @@ export const requestsApi = {
   create: (draft: Draft) => request<LeaveRequest>('/requests', { method: 'POST', body: draft }),
   update: (id: number, draft: Draft) => request<LeaveRequest>(`/requests/${id}`, { method: 'PATCH', body: draft }),
   cancel: (id: number) => request<LeaveRequest>(`/requests/${id}/cancel`, { method: 'POST' }),
-  decide: (id: number, status: 'approved' | 'rejected', note: string) =>
-    request<LeaveRequest>(`/requests/${id}/decision`, { method: 'POST', body: { status, note } }),
+  decide: (id: number, status: 'approved' | 'rejected', note: string, keepalive = false) =>
+    request<LeaveRequest>(`/requests/${id}/decision`, { method: 'POST', body: { status, note }, keepalive }),
   overlaps: (id: number | string) => request<LeaveRequest[]>(`/requests/${id}/overlaps`),
   /** A plain link: the browser downloads the CSV with the session cookie. */
   exportUrl: (f: RequestFilters) => `/api/requests/export.csv${filterQuery({ ...f, page: undefined, pageSize: undefined })}`,

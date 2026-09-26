@@ -4,12 +4,12 @@ const LOW = 4
 
 /**
  * "8/22 used · 14 left" over a 6px bar (110px wide in tables, 200px on the
- * review page). Left counts pending days too; amber at 4 or fewer.
+ * review page). Left = limit − approved days; amber at 4 or fewer.
  */
-export function BalanceBar({ used, pending = 0, limit, width = 110, className }: {
-  used: number; pending?: number; limit: number; width?: number | 'full'; className?: string
+export function BalanceBar({ used, limit, width = 110, className }: {
+  used: number; limit: number; width?: number | 'full'; className?: string
 }) {
-  const left = Math.max(0, limit - used - pending)
+  const left = Math.max(0, limit - used)
   const low = left <= LOW
   const percent = limit > 0 ? Math.min(100, (used / limit) * 100) : 0
   return (

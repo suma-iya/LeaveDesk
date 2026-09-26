@@ -18,6 +18,8 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /api/auth/logout", s.public(s.logout))
 	mux.Handle("GET /api/auth/google/start", s.public(s.googleStart))
 	mux.Handle("GET /api/auth/google/callback", s.public(s.googleCallback))
+	mux.Handle("GET /api/auth/google/pending", s.public(s.googlePending))
+	mux.Handle("POST /api/auth/google/complete", s.public(s.googleComplete))
 
 	// Me
 	mux.Handle("GET /api/me", s.signedIn(s.me))

@@ -6,6 +6,7 @@ import type { RequestFilters } from '@/types'
 export const keys = {
   me: ['me'] as const,
   bootstrap: ['bootstrap'] as const,
+  googlePending: ['google-pending'] as const,
   departments: ['departments'] as const,
   requests: (f?: RequestFilters) => (f ? (['requests', f] as const) : (['requests'] as const)),
   request: (id: string | number) => ['request', String(id)] as const,

@@ -110,7 +110,8 @@ export function ProfilePage() {
         </div>
         <div className="flex flex-col gap-5">
           <Card className="flex flex-col gap-4 p-5">
-            <CardTitle>Change password</CardTitle>
+            {/* A Google-only account has no password yet; the API then skips the current-password check. */}
+            <CardTitle>{user.hasPassword ? 'Change password' : 'Set a password'}</CardTitle>
             {user.hasPassword && (
               <FieldBox id="current" label="Current password">
                 <Input id="current" type="password" autoComplete="current-password" value={pw.current} onChange={(e) => setPw((p) => ({ ...p, current: e.target.value }))} className={inputHeight} />

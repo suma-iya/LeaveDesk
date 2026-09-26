@@ -85,7 +85,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*domain.User,
 	}
 	user, err := s.store.CreateUser(ctx, store.NewUser{
 		Email: in.Email, FirstName: in.FirstName, LastName: in.LastName,
-		DateOfBirth: *in.DateOfBirth, PasswordHash: hash,
+		DateOfBirth: *in.DateOfBirth, PasswordHash: &hash,
 	}, InitialRole)
 	if errors.Is(err, domain.ErrConflict) {
 		return nil, domain.Conflict("EMAIL_TAKEN", "An account with this email already exists. Sign in instead.")
@@ -115,6 +115,10 @@ func (s *Service) Login(ctx context.Context, email, password string) (*domain.Us
 	return u, nil
 }
 
+// ErrNoGoogleAccount means the Google identity is verified but nobody has
+// registered with it yet; the caller sends the person to finish sign-up.
+var ErrNoGoogleAccount = errors.New("no account for this google identity")
+
 // GoogleSignIn matches by Google subject first, then links an existing
 // account with the same email. Role and status always come from our DB.
 // Google does not give a date of birth, so new people register first.
@@ -128,7 +132,7 @@ func (s *Service) GoogleSignIn(ctx context.Context, id *auth.GoogleIdentity) (*d
 	}
 	u, err = s.store.UserByEmail(ctx, id.Email)
 	if errors.Is(err, domain.ErrNotFound) {
-		return nil, domain.NotFound("No account uses %s yet. Create an account first, then you can continue with Google.", id.Email)
+		return nil, ErrNoGoogleAccount
 	}
 	if err != nil {
 		return nil, err
@@ -145,6 +149,49 @@ func (s *Service) GoogleSignIn(ctx context.Context, id *auth.GoogleIdentity) (*d
 		return nil, err
 	}
 	return u, nil
+}
+
+// GoogleRegisterInput is what the person adds to a verified Google
+// identity. Names default to Google's; the email never comes from here.
+type GoogleRegisterInput struct {
+	DateOfBirth *domain.Date `json:"dateOfBirth"`
+	FirstName   string       `json:"firstName"`
+	LastName    string       `json:"lastName"`
+}
+
+// RegisterGoogle creates a Google-only account (no password) for an
+// identity Google has already verified. The first-HR rule and its lock are
+// the same as Register's.
+func (s *Service) RegisterGoogle(ctx context.Context, id *auth.GoogleIdentity, in GoogleRegisterInput) (*domain.User, error) {
+	first, last := strings.TrimSpace(in.FirstName), strings.TrimSpace(in.LastName)
+	if first == "" {
+		first = strings.TrimSpace(id.FirstName)
+	}
+	if last == "" {
+		last = strings.TrimSpace(id.LastName)
+	}
+	email := strings.ToLower(strings.TrimSpace(id.Email))
+
+	if err := validateName(first, last); err != nil {
+		return nil, err
+	}
+	if in.DateOfBirth == nil {
+		return nil, domain.Invalid("Enter your date of birth.")
+	}
+	if err := s.validateDOB(*in.DateOfBirth); err != nil {
+		return nil, err
+	}
+	if err := s.validateEmail(email); err != nil {
+		return nil, err
+	}
+	sub := id.Subject
+	user, err := s.store.CreateUser(ctx, store.NewUser{
+		Email: email, FirstName: first, LastName: last, DateOfBirth: *in.DateOfBirth, GoogleSub: &sub,
+	}, InitialRole)
+	if errors.Is(err, domain.ErrConflict) {
+		return nil, domain.Conflict("EMAIL_TAKEN", "An account with this email already exists. Sign in instead.")
+	}
+	return user, err
 }
 
 type ProfileInput struct {

@@ -51,11 +51,13 @@ func (s *Store) HasHR(ctx context.Context) (bool, error) {
 	return has, translate(err, "check hr")
 }
 
-// NewUser is what registration stores.
+// NewUser is what registration stores. A Google-only account has no
+// password hash; a password account has no Google subject until linked.
 type NewUser struct {
 	Email, FirstName, LastName string
 	DateOfBirth                domain.Date
-	PasswordHash               string
+	PasswordHash               *string
+	GoogleSub                  *string
 }
 
 // CreateUser inserts a registration. decide gets "does an HR exist?" and
@@ -80,9 +82,9 @@ func (s *Store) CreateUser(ctx context.Context, n NewUser, decide func(hasHR boo
 	// Everyone can use the app straight away and "joins" on the day they sign up.
 	var id string
 	err = tx.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, first_name, last_name, date_of_birth, role, joined_on)
-		VALUES ($1, $2, $3, $4, $5, $6, current_date)
-		RETURNING id`, n.Email, n.PasswordHash, n.FirstName, n.LastName, n.DateOfBirth.Time, role).Scan(&id)
+		INSERT INTO users (email, password_hash, google_sub, first_name, last_name, date_of_birth, role, joined_on)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, current_date)
+		RETURNING id`, n.Email, n.PasswordHash, n.GoogleSub, n.FirstName, n.LastName, n.DateOfBirth.Time, role).Scan(&id)
 	if err != nil {
 		return nil, translate(err, "insert user")
 	}

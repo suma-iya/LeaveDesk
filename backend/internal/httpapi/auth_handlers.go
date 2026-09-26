@@ -123,6 +123,14 @@ func (s *Server) googleCallback(w http.ResponseWriter, r *http.Request) error {
 		return back(s.googleRejection(err))
 	}
 	u, err := s.accounts.GoogleSignIn(r.Context(), identity)
+	if errors.Is(err, account.ErrNoGoogleAccount) {
+		// Google gives no date of birth: finish sign-up on the Register page.
+		if err := s.sessions.StartGooglePending(w, identity); err != nil {
+			return err
+		}
+		http.Redirect(w, r, "/register?via=google", http.StatusFound)
+		return nil
+	}
 	if err != nil {
 		if de, ok := domain.AsError(err); ok {
 			return back(de.Message)
@@ -134,6 +142,46 @@ func (s *Server) googleCallback(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	http.Redirect(w, r, "/", http.StatusFound)
+	return nil
+}
+
+// GET /api/auth/google/pending — the verified Google identity waiting to
+// finish sign-up, or 404.
+func (s *Server) googlePending(w http.ResponseWriter, r *http.Request) error {
+	if s.google == nil {
+		return domain.NotFound("Google sign-in is not configured.")
+	}
+	id, err := s.sessions.ReadGooglePending(r)
+	if err != nil {
+		return domain.NotFound("Your Google sign-in expired. Continue with Google again.")
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"email": id.Email, "firstName": id.FirstName, "lastName": id.LastName})
+	return nil
+}
+
+// POST /api/auth/google/complete — creates the Google-only account and signs
+// it in. The identity comes from the signed cookie, never from the body.
+func (s *Server) googleComplete(w http.ResponseWriter, r *http.Request) error {
+	if s.google == nil {
+		return domain.NotFound("Google sign-in is not configured.")
+	}
+	id, err := s.sessions.ReadGooglePending(r)
+	if err != nil {
+		return domain.InvalidCode("GOOGLE_EXPIRED", "Your Google sign-in expired. Continue with Google again.")
+	}
+	var in account.GoogleRegisterInput
+	if err := decode(r, &in); err != nil {
+		return err
+	}
+	u, err := s.accounts.RegisterGoogle(r.Context(), id, in)
+	if err != nil {
+		return err
+	}
+	s.sessions.EndGooglePending(w)
+	if err := s.sessions.Start(w, u); err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusCreated, viewUser(u, s.today()))
 	return nil
 }
 

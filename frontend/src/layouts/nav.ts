@@ -5,8 +5,10 @@ export interface NavItem {
   label: string
   to: string
   icon: LucideIcon
-  /** Which "something new" dot this item shows. */
+  /** Which count this item shows: a pill when expanded, a dot when collapsed or on mobile. */
   dot?: 'pendingRequests'
+  /** Optional group heading shown above the first item of each group (a divider when collapsed). */
+  section?: string
   /** Active when the path matches and (optionally) ?status= does too. */
   isActive: (pathname: string, status: string | null) => boolean
 }

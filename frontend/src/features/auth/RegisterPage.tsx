@@ -57,10 +57,10 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Create an account" subtitle="HR approves new accounts and adds you to a department." wide>
+    <AuthLayout title="Create an account" subtitle="You can request leave as soon as your account is created." wide>
       {bootstrap.data?.hasHR === false && (
         <Alert tone="warning" className="mb-5">
-          No HR account exists yet. The first account created becomes HR and is active straight away.
+          No HR account exists yet. The first account created becomes HR.
         </Alert>
       )}
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>

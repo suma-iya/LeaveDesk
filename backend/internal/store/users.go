@@ -11,7 +11,7 @@ import (
 
 // Every user read joins the department so the name comes along.
 const userSelect = `
-	SELECT u.id, u.email, u.first_name, u.last_name, u.date_of_birth, u.role, u.status,
+	SELECT u.id, u.email, u.first_name, u.last_name, u.date_of_birth, u.role,
 	       u.department_id, d.name, u.joined_on, u.avatar_file_id, u.created_at, u.password_hash, u.google_sub
 	FROM users u LEFT JOIN departments d ON d.id = u.department_id`
 
@@ -19,7 +19,7 @@ func scanUser(row pgx.Row) (*domain.User, error) {
 	var u domain.User
 	var deptID *int
 	var deptName *string
-	err := row.Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.DateOfBirth, &u.Role, &u.Status,
+	err := row.Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.DateOfBirth, &u.Role,
 		&deptID, &deptName, &u.JoinedOn, &u.AvatarFileID, &u.CreatedAt, &u.PasswordHash, &u.GoogleSub)
 	if err != nil {
 		return nil, err
@@ -59,9 +59,9 @@ type NewUser struct {
 }
 
 // CreateUser inserts a registration. decide gets "does an HR exist?" and
-// returns the role and status; it runs under a transaction-scoped advisory
-// lock so two simultaneous first registrations can't both become HR.
-func (s *Store) CreateUser(ctx context.Context, n NewUser, decide func(hasHR bool) (domain.Role, domain.Status)) (*domain.User, error) {
+// returns the role; it runs under a transaction-scoped advisory lock so two
+// simultaneous first registrations can't both become HR.
+func (s *Store) CreateUser(ctx context.Context, n NewUser, decide func(hasHR bool) domain.Role) (*domain.User, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("begin: %w", err)
@@ -75,14 +75,14 @@ func (s *Store) CreateUser(ctx context.Context, n NewUser, decide func(hasHR boo
 	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM users WHERE role = 'hr')`).Scan(&hasHR); err != nil {
 		return nil, fmt.Errorf("check hr: %w", err)
 	}
-	role, status := decide(hasHR)
+	role := decide(hasHR)
 
-	// The first HR is active straight away and "joins" today.
+	// Everyone can use the app straight away and "joins" on the day they sign up.
 	var id string
 	err = tx.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, first_name, last_name, date_of_birth, role, status, joined_on)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, CASE WHEN $7 = 'active' THEN current_date END)
-		RETURNING id`, n.Email, n.PasswordHash, n.FirstName, n.LastName, n.DateOfBirth.Time, role, status).Scan(&id)
+		INSERT INTO users (email, password_hash, first_name, last_name, date_of_birth, role, joined_on)
+		VALUES ($1, $2, $3, $4, $5, $6, current_date)
+		RETURNING id`, n.Email, n.PasswordHash, n.FirstName, n.LastName, n.DateOfBirth.Time, role).Scan(&id)
 	if err != nil {
 		return nil, translate(err, "insert user")
 	}

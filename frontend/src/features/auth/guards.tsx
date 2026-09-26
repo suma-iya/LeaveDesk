@@ -5,7 +5,7 @@ import { useAuth } from './AuthProvider'
 import { homeFor } from './homeFor'
 
 // These guards only decide what renders. The API applies the same rules
-// (401, 403 ACCOUNT_PENDING, role checks) on every request.
+// (401 and role checks) on every request.
 
 function Loading() {
   return (
@@ -16,28 +16,18 @@ function Loading() {
   )
 }
 
-/** Signed in and approved by HR. */
-export function RequireActive() {
+/** Must be signed in. */
+export function RequireAuth() {
   const { user } = useAuth()
   const location = useLocation()
   if (user === undefined) return <Loading />
   if (user === null) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
-  if (user.status === 'pending') return <Navigate to="/waiting" replace />
   return <Outlet />
 }
 
 export function RequireRole({ role }: { role: Role }) {
   const { user } = useAuth()
   if (user && user.role !== role) return <Navigate to={homeFor(user)} replace />
-  return <Outlet />
-}
-
-/** Signed in but still waiting for HR. */
-export function RequirePending() {
-  const { user } = useAuth()
-  if (user === undefined) return <Loading />
-  if (user === null) return <Navigate to="/login" replace />
-  if (user.status !== 'pending') return <Navigate to={homeFor(user)} replace />
   return <Outlet />
 }
 

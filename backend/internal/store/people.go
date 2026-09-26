@@ -28,29 +28,6 @@ func (s *Store) collectUsers(ctx context.Context, sql string, args ...any) ([]do
 	return out, rows.Err()
 }
 
-func (s *Store) PendingRegistrations(ctx context.Context) ([]domain.User, error) {
-	return s.collectUsers(ctx, userSelect+` WHERE u.status = 'pending' ORDER BY u.created_at`)
-}
-
-// ApproveRegistration activates a pending account; joined_on is the approval day.
-func (s *Store) ApproveRegistration(ctx context.Context, userID string, departmentID int, joined time.Time) (bool, error) {
-	tag, err := s.db.Exec(ctx, `
-		UPDATE users SET status = 'active', department_id = $1, joined_on = $2
-		WHERE id = $3 AND status = 'pending'`, departmentID, joined, userID)
-	if err != nil {
-		return false, translate(err, "approve registration")
-	}
-	return tag.RowsAffected() == 1, nil
-}
-
-func (s *Store) DeleteRegistration(ctx context.Context, userID string) (bool, error) {
-	tag, err := s.db.Exec(ctx, `DELETE FROM users WHERE id = $1 AND status = 'pending'`, userID)
-	if err != nil {
-		return false, translate(err, "delete registration")
-	}
-	return tag.RowsAffected() == 1, nil
-}
-
 func (s *Store) Departments(ctx context.Context) ([]domain.Department, error) {
 	rows, err := s.db.Query(ctx, `SELECT id, name FROM departments ORDER BY name`)
 	if err != nil {
@@ -80,9 +57,9 @@ func (s *Store) CreateDepartment(ctx context.Context, name string) (*domain.Depa
 	return &d, translate(err, "create department")
 }
 
-// ActiveUsers lists approved accounts (employees and HR) for the People page.
+// ActiveUsers lists every account (employees and HR) for the People page.
 func (s *Store) ActiveUsers(ctx context.Context, q string, departmentID, page, pageSize int) ([]domain.User, int, error) {
-	where := []string{"u.status = 'active'"}
+	where := []string{"true"}
 	var args []any
 	if departmentID != 0 {
 		args = append(args, departmentID)

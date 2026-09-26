@@ -3,7 +3,7 @@
 LeaveDesk is a full-stack web app for requesting and approving leave.
 
 - **Employees** see their yearly balance per leave type. They request leave on a calendar that skips weekends, attach a medical note or plan, and follow each request until HR decides.
-- **HR** approves or rejects requests, with Undo. HR also approves new accounts into a department, manages salary and per-person leave limits, and sees who is away on a team calendar.
+- **HR** approves or rejects requests, with Undo. HR also sets each person's department, salary and per-person leave limits, and sees who is away on a team calendar.
 
 Sign-in uses email and password, and optionally Google. The session is a JWT in an httpOnly cookie. Every rule is enforced by the Go API; the UI only mirrors the rules to give instant feedback.
 
@@ -23,13 +23,13 @@ The written explanation (architecture, key components, API internals, Docker) is
 | **Request leave:** a month picker where Fri and Sat are never counted, a live working-day count, and the same validation as the server | **Approve / Reject** from the table or the review page. Rejecting asks for an optional note. A toast offers **Undo** for 5 seconds |
 | Edit or cancel a request while it is pending. **Request again** after a rejection | **Review page:** employee card, "If approved: N days left", teammates away on the same dates, the attachment |
 | **History** of decided requests with HR's note | **Approved** and **All** tables. All has a **Mine** chip so HR can find their own requests |
-| **Request details** with an in-page PDF preview | **People:** approve new registrations into a department, and change department, salary (with history) and leave limits |
+| **Request details** with an in-page PDF preview | **People:** everyone's leave this year; change a person's department, salary (with history) and leave limits |
 | **Team calendar** overlay showing who is away each day | The same calendar, plus CSV **Export** of any table |
 | **Profile:** photo, name, date of birth, password, light/dark theme | The same profile page |
 
 The rules the server enforces:
 
-- The first account ever created becomes an active HR. Every later account is **pending** until HR approves it.
+- The first account ever created becomes HR. Everyone who signs up after that is an employee and can use the app straight away, with no approval step.
 - A request needs at least one working day. It cannot overlap your own pending or approved leave, and cannot exceed `limit − used − pending` for its type.
 - Only pending requests can be edited, cancelled or decided. **Nobody can decide their own request**; HR's own requests go to another HR.
 - Salary is visible to HR only. HR cannot change anyone's name, email, date of birth, password, role or joining date. HR cannot change their own salary or limits either.
@@ -62,7 +62,7 @@ Before starting, open `.env` and set `JWT_SECRET` to a long random string; `open
 
 Open **http://localhost:3000**. The database starts empty and the migrations run automatically.
 
-**First run: how the first account becomes HR.** While no HR exists, the Register page says so. The first account you create becomes an **active HR** straight away. Everyone who registers after that is **pending** until HR approves them on the People page.
+**First run: how the first account becomes HR.** While no HR exists, the Register page says so. The first account you create becomes **HR**. Everyone who registers after that is an **employee** and goes straight to My leave. HR can then set their department on the People page.
 
 **Demo data (optional).** To replace everything with a demo company:
 
@@ -76,7 +76,7 @@ This is the same as `docker compose exec backend /app/leavedesk seed --reset`. E
 |---|---|---|
 | HR | `hr@company.test` | Farhana Islam |
 | Employee | `nusrat.j@company.test` | 8 days available, a pending request for 04–08 Oct, and a rejected request with a PDF |
-| Pending | `rakib.h@company.test` | Waiting for approval, so this account only sees the waiting page |
+| Employee | `rakib.h@company.test` | Joined this week, no leave history yet |
 
 The seed also creates 12 more employees in 7 departments. The week of 04–08 Oct 2026 is busy.
 
@@ -110,7 +110,7 @@ Browser ──► nginx  (frontend container, published as :3000)
              └── /api/*    proxy_pass http://backend:8080   (same origin, so the cookie just works)
                               │
                         Go API  (backend container, :8080, not published)
-             log → recover → session cookie → reload user → pending gate → role check → handler
+             log → recover → session cookie → reload user → role check → handler
                               │
                         service  (account · leave · hr · files)   ← all business rules
                               │
@@ -123,7 +123,7 @@ Browser ──► nginx  (frontend container, published as :3000)
 
 1. The browser sends `POST /api/requests/2041/decision` with the `ld_session` cookie. JavaScript never sees the token.
 2. nginx forwards the request to `backend:8080`.
-3. The middleware verifies the JWT, then **reloads the user** from Postgres. It rejects pending accounts with `403 ACCOUNT_PENDING` and non-HR users with `403 FORBIDDEN`.
+3. The middleware verifies the JWT, then **reloads the user** from Postgres (a deleted account or a changed role applies at once). It rejects non-HR users with `403 FORBIDDEN`.
 4. The handler decodes `{status, note}` and calls `leave.Service.Decide`.
 5. The service applies `CanDecide`: HR only, not your own request (`SELF_APPROVAL`), and only while the request is pending.
 6. The store runs `UPDATE … WHERE id=$1 AND status='pending'`. If someone else decided first, zero rows change and the result is `409 NOT_PENDING`.
@@ -135,7 +135,7 @@ Browser ──► nginx  (frontend container, published as :3000)
 - **Balance maths:** `available = limit − used(approved) − pending`. The limit is the policy default from config unless HR set an override for that person and year. A request counts against the year it starts in.
 - **Validation order:** type → both dates → start ≤ end → at least one working day → reason length → overlap with your own pending or approved leave → enough balance. The error messages are exact, for example `Not enough Annual leave: 6 days available, 9 requested.`
 - **Concurrency:** create and edit run in a transaction holding a per-user advisory lock, so two simultaneous submissions can't both pass the checks. Decisions are atomic on `status='pending'`. The first-HR check runs under its own advisory lock.
-- **Pending gate:** pending users can call `/api/me` and sign out; everything else answers `403 ACCOUNT_PENDING`, and the UI shows the waiting page.
+- **First account = HR:** registration takes an advisory lock, checks whether any HR exists, and makes the new account HR only if none does. Two people registering at the same moment can't both become HR.
 - **Undo:** there is no undo endpoint. The UI holds a decision for 5 seconds before sending it. If the tab closes, it is sent with `fetch keepalive`.
 
 The details are in [docs/EXPLANATION.md](docs/EXPLANATION.md).
@@ -153,7 +153,7 @@ nginx allows 6 MB request bodies for 5 MB attachments. It re-resolves `backend` 
 ## 7. Known limitations
 
 - There are no email notifications; people check the app for decisions.
-- There is no deactivation or offboarding flow. Only pending registrations can be removed.
+- There is no deactivation or offboarding flow, and there is no approval step for new accounts: anyone who can reach the sign-up page can create an employee account. Set `ALLOWED_EMAIL_DOMAINS` to restrict sign-ups to the company's email domain.
 - HR promotion and demotion are CLI-only.
 - There is a single approval step (employee → HR) with no team-lead step. With only one HR account, HR's own requests can't be decided until a second HR exists.
 - There is no password reset. The sign-in hint says "Ask HR", but by design HR cannot change passwords, so a reset needs a database operator. That is a gap to close before production.
@@ -169,13 +169,11 @@ All endpoints are under `/api`. Errors look like `{"error": "CODE", "message": "
 | `GET /health` | public |
 | `GET /auth/bootstrap` · `POST /auth/register` · `POST /auth/login` · `POST /auth/logout` | public |
 | `GET /auth/google/start` · `GET /auth/google/callback` | public (only when configured) |
-| `GET /me` | any signed-in user (pending included) |
-| `PATCH /me` · `POST /me/password` · `GET /me/balances?year=` | active |
-| `GET /requests?scope=mine\|all&status=&type=&department=&q=&from=&to=&year=&page=&pageSize=` | active (`scope=all`: HR) |
-| `POST /requests` (JSON or multipart with `attachment`) · `GET /requests/{id}` · `PATCH /requests/{id}` · `POST /requests/{id}/cancel` | active; owner or HR |
+| `GET /me` · `PATCH /me` · `POST /me/password` · `GET /me/balances?year=` | signed in |
+| `GET /requests?scope=mine\|all&status=&type=&department=&q=&from=&to=&year=&page=&pageSize=` | signed in (`scope=all`: HR) |
+| `POST /requests` (JSON or multipart with `attachment`) · `GET /requests/{id}` · `PATCH /requests/{id}` · `POST /requests/{id}/cancel` | signed in; owner or HR |
 | `POST /requests/{id}/decision` · `GET /requests/{id}/overlaps` · `GET /requests/export.csv` | HR |
-| `GET /calendar?month=2026-10&department=&type=&includePending=` | active (never returns balances) |
-| `GET /hr/registrations` · `POST /hr/registrations/{id}/approve` · `POST /hr/registrations/{id}/reject` | HR |
+| `GET /calendar?month=2026-10&department=&type=&includePending=` | signed in (never returns balances) |
 | `GET /hr/employees` · `GET /hr/employees/{id}` · `PATCH /hr/employees/{id}` · `GET /hr/employees/export.csv` | HR |
-| `GET /departments` (active) · `POST /departments` (HR) | |
-| `POST /files` · `GET /files/{id}` | active; files are served to the owner or HR, avatars to anyone signed in |
+| `GET /departments` (signed in) · `POST /departments` (HR) | |
+| `POST /files` · `GET /files/{id}` | signed in; files are served to the owner or HR, avatars to anyone signed in |

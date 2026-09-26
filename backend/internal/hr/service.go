@@ -1,6 +1,5 @@
-// Package hr holds HR-only operations: approving registrations, the people
-// directory, and changes to department, salary and leave limits. Every
-// change writes an audit_log row.
+// Package hr holds HR-only operations: the people directory and changes to
+// department, salary and leave limits. Every change writes an audit_log row.
 package hr
 
 import (
@@ -26,9 +25,6 @@ type AuditEntry struct {
 
 type Store interface {
 	UserByID(ctx context.Context, id string) (*domain.User, error)
-	PendingRegistrations(ctx context.Context) ([]domain.User, error)
-	ApproveRegistration(ctx context.Context, userID string, departmentID int, joined time.Time) (bool, error)
-	DeleteRegistration(ctx context.Context, userID string) (bool, error)
 	Departments(ctx context.Context) ([]domain.Department, error)
 	DepartmentByID(ctx context.Context, id int) (*domain.Department, error)
 	CreateDepartment(ctx context.Context, name string) (*domain.Department, error)
@@ -50,46 +46,6 @@ type Service struct {
 
 func NewService(s Store, l *leave.Service, today func() time.Time) *Service {
 	return &Service{store: s, leave: l, today: today}
-}
-
-func (s *Service) Registrations(ctx context.Context) ([]domain.User, error) {
-	return s.store.PendingRegistrations(ctx)
-}
-
-// Approve activates a pending account in the chosen department; the
-// joining date is the approval date.
-func (s *Service) Approve(ctx context.Context, actor *domain.User, userID string, departmentID int) error {
-	dept, err := s.department(ctx, departmentID)
-	if err != nil {
-		return err
-	}
-	return s.store.InTx(ctx, userID, func(tx Store) error {
-		ok, err := tx.ApproveRegistration(ctx, userID, dept.ID, s.today())
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return domain.NotFound("That registration is no longer pending.")
-		}
-		return tx.Audit(ctx, []AuditEntry{
-			{actor.ID, userID, "status", "pending", "active"},
-			{actor.ID, userID, "department", "", dept.Name},
-		})
-	})
-}
-
-// Reject deletes a pending account.
-func (s *Service) Reject(ctx context.Context, actor *domain.User, userID string) error {
-	return s.store.InTx(ctx, userID, func(tx Store) error {
-		ok, err := tx.DeleteRegistration(ctx, userID)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return domain.NotFound("That registration is no longer pending.")
-		}
-		return tx.Audit(ctx, []AuditEntry{{actor.ID, userID, "registration", "pending", "rejected"}})
-	})
 }
 
 func (s *Service) Departments(ctx context.Context) ([]domain.Department, error) {
@@ -151,7 +107,7 @@ type EmployeeDetail struct {
 }
 
 func (s *Service) Employee(ctx context.Context, id string) (*EmployeeDetail, error) {
-	u, err := s.activeUser(ctx, id)
+	u, err := s.user(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -171,9 +127,9 @@ func (s *Service) Employee(ctx context.Context, id string) (*EmployeeDetail, err
 	return &EmployeeDetail{User: u, Salaries: salaries, Year: year, Balances: balances, Recent: recent}, nil
 }
 
-func (s *Service) activeUser(ctx context.Context, id string) (*domain.User, error) {
+func (s *Service) user(ctx context.Context, id string) (*domain.User, error) {
 	u, err := s.store.UserByID(ctx, id)
-	if errors.Is(err, domain.ErrNotFound) || (err == nil && !u.IsActive()) {
+	if errors.Is(err, domain.ErrNotFound) {
 		return nil, domain.NotFound("Employee not found.")
 	}
 	return u, err
@@ -198,7 +154,7 @@ type Change struct {
 // Update validates everything first, then applies all parts in one
 // transaction (locked on the employee, like their own leave submissions).
 func (s *Service) Update(ctx context.Context, actor *domain.User, id string, c Change) error {
-	u, err := s.activeUser(ctx, id)
+	u, err := s.user(ctx, id)
 	if err != nil {
 		return err
 	}

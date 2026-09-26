@@ -70,7 +70,7 @@ func (m *memStore) UpdatePendingRequest(_ context.Context, id int64, d Draft, da
 func TestCreateAndEditUseTheBalance(t *testing.T) {
 	st := &memStore{requests: map[int64]*Request{}, nextID: 1999}
 	svc := NewService(st, Policy{Defaults: map[Type]int{Annual: 16, Casual: 3, Sick: 3}}, time.Now)
-	u := &domain.User{ID: "nusrat", Role: domain.RoleEmployee, Status: domain.StatusActive}
+	u := &domain.User{ID: "nusrat", Role: domain.RoleEmployee}
 	ctx := context.Background()
 
 	// 3 casual days is the whole allowance.

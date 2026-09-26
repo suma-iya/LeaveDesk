@@ -27,7 +27,7 @@ export function SignInPage() {
     onSuccess: (user) => {
       signedIn(user)
       const from = (location.state as { from?: string } | null)?.from
-      navigate(user.status === 'active' && from ? from : homeFor(user), { replace: true })
+      navigate(from ?? homeFor(user), { replace: true })
     },
   })
 

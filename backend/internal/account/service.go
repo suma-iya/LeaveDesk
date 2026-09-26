@@ -21,7 +21,7 @@ type Store interface {
 	UserByEmail(ctx context.Context, email string) (*domain.User, error)
 	UserByGoogleSub(ctx context.Context, sub string) (*domain.User, error)
 	HasHR(ctx context.Context) (bool, error)
-	CreateUser(ctx context.Context, n store.NewUser, decide func(hasHR bool) (domain.Role, domain.Status)) (*domain.User, error)
+	CreateUser(ctx context.Context, n store.NewUser, decide func(hasHR bool) domain.Role) (*domain.User, error)
 	LinkGoogle(ctx context.Context, userID, sub string) error
 	UpdateProfile(ctx context.Context, userID, first, last string, dob domain.Date, avatarFileID *string) error
 	UpdatePassword(ctx context.Context, userID, hash string) error
@@ -38,13 +38,14 @@ func NewService(s Store, allowedDomains []string, today func() time.Time) *Servi
 	return &Service{store: s, allowedDomains: allowedDomains, today: today}
 }
 
-// InitialRoleStatus is the first-run rule: while no HR exists, the new
-// account becomes an active HR; afterwards everyone starts as a pending employee.
-func InitialRoleStatus(hasHR bool) (domain.Role, domain.Status) {
+// InitialRole is the first-run rule: while no HR exists, the new account
+// becomes HR; afterwards everyone signs up as an employee. Nobody waits for
+// approval: every account can use the app straight away.
+func InitialRole(hasHR bool) domain.Role {
 	if !hasHR {
-		return domain.RoleHR, domain.StatusActive
+		return domain.RoleHR
 	}
-	return domain.RoleEmployee, domain.StatusPending
+	return domain.RoleEmployee
 }
 
 func (s *Service) HasHR(ctx context.Context) (bool, error) { return s.store.HasHR(ctx) }
@@ -85,7 +86,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*domain.User,
 	user, err := s.store.CreateUser(ctx, store.NewUser{
 		Email: in.Email, FirstName: in.FirstName, LastName: in.LastName,
 		DateOfBirth: *in.DateOfBirth, PasswordHash: hash,
-	}, InitialRoleStatus)
+	}, InitialRole)
 	if errors.Is(err, domain.ErrConflict) {
 		return nil, domain.Conflict("EMAIL_TAKEN", "An account with this email already exists. Sign in instead.")
 	}
@@ -95,7 +96,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*domain.User,
 var errBadLogin = domain.Unauthenticated("Wrong email or password.")
 
 // Login returns the same error for an unknown email and a wrong password,
-// so nobody can probe which emails have accounts. Pending users can sign in.
+// so nobody can probe which emails have accounts.
 func (s *Service) Login(ctx context.Context, email, password string) (*domain.User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	if email == "" || password == "" {
@@ -193,8 +194,8 @@ func (s *Service) ChangePassword(ctx context.Context, u *domain.User, current, n
 // Promote and Demote are CLI-only; HR promotion is not in the UI.
 func (s *Service) Promote(ctx context.Context, email string) error {
 	return s.store.SetRole(ctx, strings.ToLower(email), domain.RoleHR, func(u *domain.User, _ int) error {
-		if !u.IsActive() {
-			return fmt.Errorf("%s is still pending; approve the account first", u.Email)
+		if u.IsHR() {
+			return fmt.Errorf("%s is already HR", u.Email)
 		}
 		return nil
 	})

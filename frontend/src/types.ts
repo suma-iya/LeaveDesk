@@ -1,7 +1,6 @@
 // Shapes of the Go API's JSON. Dates are ISO "yyyy-MM-dd" strings.
 
 export type Role = 'hr' | 'employee'
-export type AccountStatus = 'pending' | 'active'
 export type LeaveType = 'annual' | 'casual' | 'sick'
 export type Status = 'pending' | 'approved' | 'rejected' | 'cancelled'
 
@@ -18,7 +17,6 @@ export interface User {
   dateOfBirth: string
   age: number
   role: Role
-  status: AccountStatus
   department: Department | null
   joinedOn: string | null
   avatarUrl?: string

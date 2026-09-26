@@ -15,7 +15,6 @@ type userView struct {
 	DateOfBirth domain.Date        `json:"dateOfBirth"`
 	Age         int                `json:"age"`
 	Role        domain.Role        `json:"role"`
-	Status      domain.Status      `json:"status"`
 	Department  *domain.Department `json:"department"`
 	JoinedOn    *domain.Date       `json:"joinedOn"`
 	AvatarURL   string             `json:"avatarUrl,omitempty"`
@@ -27,7 +26,7 @@ func viewUser(u *domain.User, today time.Time) userView {
 	return userView{
 		ID: u.ID, Email: u.Email, FirstName: u.FirstName, LastName: u.LastName,
 		DateOfBirth: domain.DateOf(u.DateOfBirth), Age: domain.Age(u.DateOfBirth, today),
-		Role: u.Role, Status: u.Status, Department: u.Department, JoinedOn: domain.OptionalDate(u.JoinedOn),
+		Role: u.Role, Department: u.Department, JoinedOn: domain.OptionalDate(u.JoinedOn),
 		AvatarURL: u.AvatarURL(), CreatedAt: u.CreatedAt, HasPassword: u.PasswordHash != nil,
 	}
 }

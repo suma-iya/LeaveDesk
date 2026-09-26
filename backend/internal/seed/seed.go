@@ -1,5 +1,5 @@
 // Package seed loads the demo data set: departments, one HR, one employee
-// with history, twelve more employees, two pending registrations, and
+// with history, fourteen more employees (two who joined this week), and
 // October 2026 leave that makes 04–08 Oct busy.
 package seed
 
@@ -32,7 +32,7 @@ type person struct {
 	key, first, last, email, department string
 	dob, joined                         string
 	salary                              int64
-	hr, pending                         bool
+	hr                                  bool
 }
 
 var people = []person{
@@ -50,9 +50,9 @@ var people = []person{
 	{key: "jahid", first: "Jahid", last: "Hasan", email: "jahid.h@company.test", department: "Operations", dob: "2001-03-28", joined: "2025-01-05", salary: 55000},
 	{key: "arif", first: "Arif", last: "Chowdhury", email: "arif.c@company.test", department: "Support", dob: "2002-06-19", joined: "2025-04-01", salary: 48000},
 	{key: "rumana", first: "Rumana", last: "Begum", email: "rumana.b@company.test", department: "Support", dob: "1990-01-30", joined: "2019-11-11", salary: 72000},
-	// Registered but not yet approved by HR.
-	{key: "rakib", first: "Rakib", last: "Hasan", email: "rakib.h@company.test", dob: "1998-12-02", pending: true},
-	{key: "lamia", first: "Lamia", last: "Chowdhury", email: "lamia.c@company.test", dob: "2000-10-15", pending: true},
+	// Signed up this week: no leave history yet.
+	{key: "rakib", first: "Rakib", last: "Hasan", email: "rakib.h@company.test", department: "Quality Assurance", dob: "1998-12-02", joined: "2026-09-23", salary: 58000},
+	{key: "lamia", first: "Lamia", last: "Chowdhury", email: "lamia.c@company.test", department: "Design", dob: "2000-10-15", joined: "2026-09-25", salary: 62000},
 }
 
 type request struct {
@@ -156,46 +156,33 @@ func Run(ctx context.Context, pool *pgxpool.Pool, uploadDir string, loc *time.Lo
 
 	userIDs := map[string]string{}
 	for _, p := range people {
-		role, status := "employee", "active"
+		role := "employee"
 		if p.hr {
 			role = "hr"
 		}
-		if p.pending {
-			status = "pending"
-		}
-		var dept *int
-		var joined *string
-		if !p.pending {
-			id := deptIDs[p.department]
-			dept, joined = &id, &p.joined
-		}
-		// Pending accounts registered a few days ago.
-		created := "2026-09-23 11:00"
-		if p.key == "lamia" {
-			created = "2026-09-25 16:30"
-		}
 		var id string
 		err := tx.QueryRow(ctx, `
-			INSERT INTO users (email, password_hash, first_name, last_name, date_of_birth, role, status, department_id, joined_on, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, ($10::timestamp AT TIME ZONE $11))
+			INSERT INTO users (email, password_hash, first_name, last_name, date_of_birth, role, department_id, joined_on, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, ($8::date + time '09:00') AT TIME ZONE $9)
 			RETURNING id`,
-			p.email, string(hash), p.first, p.last, p.dob, role, status, dept, joined, created, loc.String(),
+			p.email, string(hash), p.first, p.last, p.dob, role, deptIDs[p.department], p.joined, loc.String(),
 		).Scan(&id)
 		if err != nil {
 			return fmt.Errorf("insert user %s: %w", p.email, err)
 		}
 		userIDs[p.key] = id
 
-		if p.salary > 0 {
-			// A raise this year for everyone who joined before 2026, so history shows two rows.
+		// Everyone who joined before 2026 got a raise on 1 Jan, so history shows two rows.
+		if p.joined < "2026-01-01" {
 			if _, err := tx.Exec(ctx, `INSERT INTO salaries (user_id, monthly_bdt, effective_from) VALUES ($1, $2, $3)`,
 				id, p.salary*9/10, p.joined); err != nil {
 				return fmt.Errorf("insert salary: %w", err)
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO salaries (user_id, monthly_bdt, effective_from) VALUES ($1, $2, '2026-01-01')`,
-				id, p.salary); err != nil {
-				return fmt.Errorf("insert salary: %w", err)
-			}
+		}
+		from := max(p.joined, "2026-01-01")
+		if _, err := tx.Exec(ctx, `INSERT INTO salaries (user_id, monthly_bdt, effective_from) VALUES ($1, $2, $3)`,
+			id, p.salary, from); err != nil {
+			return fmt.Errorf("insert salary: %w", err)
 		}
 	}
 

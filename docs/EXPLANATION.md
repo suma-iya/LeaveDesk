@@ -35,8 +35,8 @@ flowchart LR
 ```
 
 - **One origin.** The browser only ever talks to nginx on `localhost:3000`. nginx serves the React build and forwards `/api/*` to the Go container. There are no cross-origin calls, so no CORS setup is needed. The `SameSite=Lax` session cookie is sent automatically, and the API and database ports are never published.
-- **SPA plus JSON API.** React Router changes pages in the browser. All data comes from `/api` as JSON. Errors always have the shape `{"error": "CODE", "message": "…"}`: the UI branches on `error` (for example `ACCOUNT_PENDING`) and shows `message` to the user.
-- **Session.** Login sets `ld_session`, an httpOnly cookie holding an HS256 JWT (`sub`, `role`, `status`, 8-hour expiry). JavaScript cannot read it, so an XSS bug cannot steal it. Who is signed in comes from `GET /api/me`.
+- **SPA plus JSON API.** React Router changes pages in the browser. All data comes from `/api` as JSON. Errors always have the shape `{"error": "CODE", "message": "…"}`: the UI branches on `error` (for example `SELF_APPROVAL`) and shows `message` to the user.
+- **Session.** Login sets `ld_session`, an httpOnly cookie holding an HS256 JWT (`sub`, `role`, 8-hour expiry). JavaScript cannot read it, so an XSS bug cannot steal it. Who is signed in comes from `GET /api/me`.
 - **The server is the authority.** The UI checks dates, overlaps and balances as you type, for instant feedback. The API repeats every check and is the only thing that decides.
 
 ## 2. Key code components
@@ -50,7 +50,7 @@ internal/domain         shared types (User, Date) and the error type {Status, Co
 internal/auth           bcrypt, session cookie (JWT), Google OIDC verification
 internal/account        register (first user → HR), login, profile, password, promote/demote
 internal/leave          policy, WorkingDays, balances, validation, decisions, calendar  ← core rules
-internal/hr             registrations, people, department/salary/limits, audit log
+internal/hr             people, department/salary/limits, audit log
 internal/files          uploads: type sniffing, size limits, permission to read
 internal/store          all SQL (pgx); implements every service's Store interface
 internal/httpapi        routes, middleware, thin handlers, JSON views, CSV export
@@ -62,19 +62,19 @@ migrations/             SQL files embedded in the binary, run with golang-migrat
 |---|---|
 | `leave/rules.go` | Pure functions with no I/O: `Validate` (the validation order and exact messages), `CanDecide` (HR, not self, pending), `CanChange` (owner, pending), `ValidateLimit` (floor), `Overlaps`. Table-driven tests cover each one. |
 | `leave/service.go` | Applies the rules through a `Store` interface: create and edit inside `InUserLock`, atomic cancel and decide, lists, balances, teammates away. |
-| `account/service.go` | `InitialRoleStatus(hasHR)` is the first-run rule. Also handles registration validation (18+, email domain, password), login (one error message for a bad email or a bad password), and Google account linking. |
-| `hr/service.go` | Approves or rejects registrations. Validates all of PATCH `/hr/employees/{id}` first, then applies it in one transaction and writes the audit rows. |
+| `account/service.go` | `InitialRole(hasHR)` is the first-run rule (no HR yet → HR, otherwise employee). Also handles registration validation (18+, email domain, password), login (one error message for a bad email or a bad password), and Google account linking. |
+| `hr/service.go` | The people directory. Validates all of PATCH `/hr/employees/{id}` first, then applies it in one transaction and writes the audit rows. |
 | `store/*.go` | Parameterised SQL only. The `querier` interface lets the same methods run on the pool or inside a transaction. |
-| `httpapi/server.go` | Route wrappers: `public`, `signedIn` (pending allowed), `active` (the pending gate), `hrOnly`. `fail()` maps errors to JSON. |
+| `httpapi/server.go` | Route wrappers: `public`, `signedIn`, `hrOnly`. `fail()` maps errors to JSON. |
 
 ### Frontend (`frontend/src/`)
 
 | Component | Purpose |
 |---|---|
-| `api/http.ts` | The only `fetch`. It sends cookies same-origin, turns error bodies into `ApiError(status, code, message)`, and reports 401 and `ACCOUNT_PENDING` to the auth provider. |
+| `api/http.ts` | The only `fetch`. It sends cookies same-origin, turns error bodies into `ApiError(status, code, message)`, and reports a 401 to the auth provider, which shows Sign in. |
 | `api/*.ts` | One module per resource (`auth`, `me`, `requests`, `hr`, `calendar`, `files`), grouped as `api.*`. |
 | `api/queries.ts` | Query keys, shared hooks, and `refreshLeaveData()`, which marks every view of leave data stale after a change. |
-| `features/auth/*` | `AuthProvider` (the `/me` query), route guards (active, pending, guest, role), and the Sign in, Register and Waiting pages. |
+| `features/auth/*` | `AuthProvider` (the `/me` query), route guards (signed in, guest, role), and the Sign in and Register pages. |
 | `layouts/AppShell.tsx` | The 80px rail (bottom tab bar on mobile), amber "new" dots, and the account menu. |
 | `layouts/HeaderActions.tsx` + `features/calendar/*` | Request leave, the Calendar toggle and Export, plus the Team calendar overlay, whose open state is remembered for the session. |
 | `components/AppButton.tsx` | The only button: `labeled` (exactly 140×36 on desktop, full width at 44 or 48 on mobile and auth pages) or `icon` (36/44 square with aria-label and tooltip). Five variants. |
@@ -91,7 +91,7 @@ migrations/             SQL files embedded in the binary, run with golang-migrat
 Routes use the Go 1.22+ `ServeMux` patterns, for example `mux.Handle("POST /api/requests/{id}/decision", s.hrOnly(s.decideRequest))`. A wrong method gets 405 automatically, and `r.PathValue("id")` reads the wildcard. Every request passes through:
 
 ```
-logRequests → recoverPanics → ServeMux → [withUser → pending gate → role check] → handler
+logRequests → recoverPanics → ServeMux → [withUser → role check] → handler
 ```
 
 | Step | What it does | Fails with |
@@ -99,7 +99,6 @@ logRequests → recoverPanics → ServeMux → [withUser → pending gate → ro
 | `logRequests` | Writes one JSON line: method, path, status, milliseconds | – |
 | `recoverPanics` | Turns a panic into a 500 instead of a crash | 500 |
 | `withUser` | Verifies the cookie's JWT (HS256 only, issuer, expiry), then **reloads the user from Postgres**. A deleted account is locked out at once, and role or status changes apply on the next request | 401 |
-| pending gate (`active`) | `status = pending` → `ACCOUNT_PENDING` | 403 |
 | role check (`hrOnly`) | `role ≠ hr` → `FORBIDDEN` | 403 |
 
 ### 3.2 Handler → service → store
@@ -121,7 +120,7 @@ Services return a `*domain.Error{Status, Code, Message}`, and `fail()` writes it
 |---|---|
 | 400 | `VALIDATION`, `NO_WORKING_DAYS`, `INSUFFICIENT_BALANCE`, `LIMIT_TOO_LOW` |
 | 401 | `UNAUTHENTICATED` (no cookie, bad signature, expired, wrong password) |
-| 403 | `ACCOUNT_PENDING`, `FORBIDDEN`, `SELF_APPROVAL`, `SELF_EDIT` |
+| 403 | `FORBIDDEN`, `SELF_APPROVAL`, `SELF_EDIT` |
 | 404 | `NOT_FOUND`. This includes someone else's request, so ids can't be probed |
 | 409 | `OVERLAP`, `NOT_PENDING`, `EMAIL_TAKEN`, `DEPARTMENT_EXISTS` |
 
@@ -158,9 +157,9 @@ When editing, the request's own days are given back before the check. HR's table
 
 `CanDecide(hr, request)`: the decider must be HR, `request.user_id ≠ hr.id` (otherwise `SELF_APPROVAL`), and the status must be pending. The store then runs `UPDATE leave_requests SET status=…, decided_by=…, decided_at=now() WHERE id=$1 AND status='pending'`. Postgres locks the row, so if two HR users click at once, the second update matches zero rows and gets `409 NOT_PENDING`. An HR user's own requests appear in their Pending list with Approve and Reject disabled. The review page says "Another HR must decide your own request."
 
-### First account becomes HR, and the pending gate
+### First account becomes HR
 
-Registration runs in a transaction holding `pg_advisory_xact_lock(hashtext('leavedesk:first-hr'))`. It checks whether any HR exists and calls `InitialRoleStatus(hasHR)`: no HR means an active HR (joined today); otherwise the account is a pending employee. Two simultaneous first registrations cannot both become HR. Pending accounts can sign in, call `GET /api/me` and sign out; everything else answers `ACCOUNT_PENDING`. HR approves an account by choosing a department, which sets `status=active`, `department_id`, and `joined_on` to the approval date, and writes audit rows. The `demote` CLI takes the same lock and refuses to remove the last HR.
+Registration runs in a transaction holding `pg_advisory_xact_lock(hashtext('leavedesk:first-hr'))`. It checks whether any HR exists and calls `InitialRole(hasHR)`: with no HR the new account becomes HR, otherwise an employee. Either way the account works immediately (there is no approval step), `joined_on` is the sign-up day, and the browser goes to that role's home page: HR to Pending, employees to My leave. Two simultaneous first registrations cannot both become HR. A new employee has no department until HR sets one on the People page. The `demote` CLI takes the same lock and refuses to remove the last HR. Migration `0002` removed the old `status` column; anyone who was still pending was activated.
 
 ### HR changes and the audit log
 
@@ -172,9 +171,9 @@ Registration runs in a transaction holding `pg_advisory_xact_lock(hashtext('leav
 
 ## 5. Database
 
-The migration is `backend/migrations/0001_init.up.sql`:
+The migrations are `backend/migrations/0001_init.up.sql` and `0002_no_account_approval.up.sql`:
 
-- **`users`**: uuid ids, `citext` email (so it is case-insensitive and unique), role and status checks. There is no stored age; age is computed from `date_of_birth`.
+- **`users`**: uuid ids, `citext` email (so it is case-insensitive and unique), a role check. There is no stored age; age is computed from `date_of_birth`.
 - **`leave_requests`**: `CHECK (end_date >= start_date)` and `working_days ≥ 1`. The id sequence starts at 1000 (LV-1000). Indexes on `(user_id, status)` and `(start_date, end_date)`.
 - **`leave_limits`**: primary key `(user, year, type)`. A missing row means "use the policy default".
 - **`salaries`**: append-only history with `effective_from`.

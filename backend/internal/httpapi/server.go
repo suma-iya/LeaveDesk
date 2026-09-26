@@ -81,24 +81,13 @@ func (s *Server) public(h handlerFunc) http.Handler {
 	})
 }
 
-// signedIn allows any account, including pending ones.
+// signedIn requires a valid session.
 func (s *Server) signedIn(h userFunc) http.Handler {
 	return s.withUser(func(w http.ResponseWriter, r *http.Request, u *domain.User) error { return h(w, r, u) })
 }
 
-// active is the pending-account gate: until HR approves them, users get
-// 403 ACCOUNT_PENDING from everything except sign-out and /me.
-func (s *Server) active(h userFunc) http.Handler {
-	return s.withUser(func(w http.ResponseWriter, r *http.Request, u *domain.User) error {
-		if !u.IsActive() {
-			return domain.Forbidden("ACCOUNT_PENDING", "Your account is waiting for HR approval.")
-		}
-		return h(w, r, u)
-	})
-}
-
 func (s *Server) hrOnly(h userFunc) http.Handler {
-	return s.active(func(w http.ResponseWriter, r *http.Request, u *domain.User) error {
+	return s.withUser(func(w http.ResponseWriter, r *http.Request, u *domain.User) error {
 		if !u.IsHR() {
 			return domain.Forbidden("FORBIDDEN", "Only HR can do this.")
 		}

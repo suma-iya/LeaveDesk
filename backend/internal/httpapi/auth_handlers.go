@@ -115,18 +115,13 @@ func (s *Server) googleCallback(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// GET /api/me — works for pending users too (the waiting page needs it).
-// Active users also get this year's balance per type.
+// GET /api/me — the signed-in user plus this year's balance per type.
 func (s *Server) me(w http.ResponseWriter, r *http.Request, u *domain.User) error {
-	body := map[string]any{"user": viewUser(u, s.today())}
-	if u.IsActive() {
-		balances, err := s.leave.Balances(r.Context(), u.ID, s.today().Year())
-		if err != nil {
-			return err
-		}
-		body["balances"] = balances
+	balances, err := s.leave.Balances(r.Context(), u.ID, s.today().Year())
+	if err != nil {
+		return err
 	}
-	writeJSON(w, http.StatusOK, body)
+	writeJSON(w, http.StatusOK, map[string]any{"user": viewUser(u, s.today()), "balances": balances})
 	return nil
 }
 

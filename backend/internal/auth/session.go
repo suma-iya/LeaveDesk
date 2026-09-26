@@ -16,8 +16,7 @@ import (
 const CookieName = "ld_session"
 
 type Claims struct {
-	Role   domain.Role   `json:"role"`
-	Status domain.Status `json:"status"`
+	Role domain.Role `json:"role"`
 	jwt.RegisteredClaims
 }
 
@@ -31,12 +30,11 @@ func NewSessions(secret string, ttl time.Duration, secure bool) *Sessions {
 	return &Sessions{secret: []byte(secret), ttl: ttl, secure: secure}
 }
 
-// Start signs a JWT (sub, role, status) and sets it as the session cookie.
+// Start signs a JWT (sub, role) and sets it as the session cookie.
 func (s *Sessions) Start(w http.ResponseWriter, u *domain.User) error {
 	now := time.Now()
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
-		Role:   u.Role,
-		Status: u.Status,
+		Role: u.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   u.ID,
 			Issuer:    "leavedesk",
@@ -63,8 +61,8 @@ func (s *Sessions) End(w http.ResponseWriter) {
 }
 
 // Read verifies the cookie's signature, algorithm, issuer and expiry and
-// returns the user id. Role and status are reloaded from the database by
-// the middleware, so changes apply immediately.
+// returns the user id. The role is reloaded from the database by the
+// middleware, so a role change applies immediately.
 func (s *Sessions) Read(r *http.Request) (string, error) {
 	cookie, err := r.Cookie(CookieName)
 	if err != nil {

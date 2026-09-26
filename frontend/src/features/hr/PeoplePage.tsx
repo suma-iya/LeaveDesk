@@ -1,26 +1,22 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { createColumnHelper } from '@tanstack/react-table'
-import { Check, ChevronRight, X } from 'lucide-react'
-import { toast } from 'sonner'
+import { ChevronRight } from 'lucide-react'
 import { api } from '@/api'
 import { keys, useDepartments } from '@/api/queries'
-import { AppButton } from '@/components/AppButton'
 import { Avatar } from '@/components/Avatar'
-import { Card, CardTitle } from '@/components/Card'
+import { Card } from '@/components/Card'
 import { DataTable } from '@/components/DataTable'
-import { FilterSelect } from '@/components/Filters'
 import type { FilterDef } from '@/components/Filters'
 import { PageHeader } from '@/components/PageHeader'
 import { HeaderActions } from '@/layouts/HeaderActions'
-import { formatDate } from '@/lib/dates'
 import { ALL, optionsFrom } from '@/lib/filters'
 import { fullName } from '@/lib/format'
 import { useDebounced } from '@/lib/useDebounced'
 import { usePaging } from '@/lib/usePaging'
 import { cn } from '@/lib/utils'
-import type { EmployeeRow, User } from '@/types'
+import type { EmployeeRow } from '@/types'
 
 const col = createColumnHelper<EmployeeRow>()
 const personLink = (u: { id: string }) => `/hr/people/${u.id}`
@@ -89,7 +85,6 @@ export function PeoplePage() {
         subtitle="Click an employee to change their department, salary or leave limits."
         actions={<HeaderActions exportHref={api.hr.exportUrl(f)} />}
       />
-      <NewRegistrations />
       <DataTable
         filters={filters}
         onReset={() => { setQ(''); setDepartment(ALL) }}
@@ -121,61 +116,5 @@ export function PeoplePage() {
         )}
       />
     </>
-  )
-}
-
-/** Amber-bordered card of pending accounts: pick a department, then approve. */
-function NewRegistrations() {
-  const registrations = useQuery({ queryKey: keys.registrations, queryFn: api.hr.registrations })
-  if (!registrations.data?.length) return null
-  return (
-    <Card className="border-l-[3px] border-l-pending">
-      <div className="border-b px-4 py-3">
-        <CardTitle>New registrations</CardTitle>
-        <p className="text-[13px] text-muted-foreground">Choose a department to approve an account. The approval date becomes their joining date.</p>
-      </div>
-      <ul className="divide-y">
-        {registrations.data.map((u) => <RegistrationRow key={u.id} user={u} />)}
-      </ul>
-    </Card>
-  )
-}
-
-function RegistrationRow({ user }: { user: User }) {
-  const client = useQueryClient()
-  const departments = useDepartments().data ?? []
-  const [department, setDepartment] = useState('')
-  const refresh = () => Promise.all([keys.registrations, keys.employees].map((queryKey) => client.invalidateQueries({ queryKey })))
-
-  const approve = useMutation({
-    mutationFn: () => api.hr.approve(user.id, Number(department)),
-    onSuccess: () => { toast.success(`${fullName(user)} approved`); return refresh() },
-    onError: (e) => toast.error(e.message),
-  })
-  const reject = useMutation({
-    mutationFn: () => api.hr.reject(user.id),
-    onSuccess: () => { toast(`${fullName(user)}’s registration was rejected`); return refresh() },
-    onError: (e) => toast.error(e.message),
-  })
-
-  return (
-    <li className="flex flex-wrap items-center gap-3 px-4 py-3">
-      <Avatar name={fullName(user)} src={user.avatarUrl} size={36} />
-      <div className="min-w-48 flex-1">
-        <p className="font-semibold">{fullName(user)}</p>
-        <p className="text-[13px] text-muted-foreground">{user.email}</p>
-      </div>
-      <p className="w-16 text-[13px] text-muted-foreground">Age {user.age}</p>
-      <p className="w-36 text-[13px] text-muted-foreground">Registered {formatDate(user.createdAt.slice(0, 10))}</p>
-      <FilterSelect className="h-9! w-[180px] max-md:h-11! max-md:w-full" filter={{
-        kind: 'select', id: `dept-${user.id}`, label: `Department for ${fullName(user)}`, value: department || 'none', defaultValue: 'none',
-        options: [{ value: 'none', label: 'Choose department' }, ...departments.map((d) => ({ value: String(d.id), label: d.name }))],
-        onChange: (v) => setDepartment(v === 'none' ? '' : v),
-      }} />
-      <div className="flex gap-2 max-md:grid max-md:w-full max-md:grid-cols-2">
-        <AppButton icon={X} label="Reject" variant="danger" loading={reject.isPending} disabled={approve.isPending} onClick={() => reject.mutate()} />
-        <AppButton icon={Check} label="Approve" variant="ok" loading={approve.isPending} disabled={!department || reject.isPending} onClick={() => approve.mutate()} />
-      </div>
-    </li>
   )
 }

@@ -12,44 +12,6 @@ import (
 	"github.com/suma-iya/leavedesk/backend/internal/leave"
 )
 
-// GET /api/hr/registrations
-func (s *Server) registrations(w http.ResponseWriter, r *http.Request, _ *domain.User) error {
-	users, err := s.hr.Registrations(r.Context())
-	if err != nil {
-		return err
-	}
-	views := make([]userView, len(users))
-	for i := range users {
-		views[i] = viewUser(&users[i], s.today())
-	}
-	writeJSON(w, http.StatusOK, views)
-	return nil
-}
-
-// POST /api/hr/registrations/{id}/approve  {"departmentId": 1}
-func (s *Server) approveRegistration(w http.ResponseWriter, r *http.Request, u *domain.User) error {
-	var in struct {
-		DepartmentID int `json:"departmentId"`
-	}
-	if err := decode(r, &in); err != nil {
-		return err
-	}
-	if err := s.hr.Approve(r.Context(), u, pathID(r), in.DepartmentID); err != nil {
-		return err
-	}
-	w.WriteHeader(http.StatusNoContent)
-	return nil
-}
-
-// POST /api/hr/registrations/{id}/reject
-func (s *Server) rejectRegistration(w http.ResponseWriter, r *http.Request, u *domain.User) error {
-	if err := s.hr.Reject(r.Context(), u, pathID(r)); err != nil {
-		return err
-	}
-	w.WriteHeader(http.StatusNoContent)
-	return nil
-}
-
 type employeeRowView struct {
 	userView
 	Yearly leave.YearTotal `json:"yearly"`

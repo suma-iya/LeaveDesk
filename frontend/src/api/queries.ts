@@ -12,7 +12,6 @@ export const keys = {
   overlaps: (id: string | number) => ['overlaps', String(id)] as const,
   balances: (year: number) => ['balances', year] as const,
   calendar: ['calendar'] as const,
-  registrations: ['registrations'] as const,
   employees: ['employees'] as const,
   employee: (id: string) => ['employee', id] as const,
 }

@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-// AuthProvider registers what to do when the session is gone or pending.
+// AuthProvider registers what to do when the session is gone.
 let onAuthProblem: (error: ApiError) => void = () => {}
 export function setAuthProblemHandler(handler: (error: ApiError) => void) {
   onAuthProblem = handler
@@ -52,7 +52,7 @@ export async function request<T>(path: string, init: { method?: string; body?: u
   const data = await response.json().catch(() => null)
   if (!response.ok) {
     const error = new ApiError(response.status, data?.error ?? 'HTTP_ERROR', data?.message ?? response.statusText)
-    if (error.status === 401 || error.code === 'ACCOUNT_PENDING') onAuthProblem(error)
+    if (error.status === 401) onAuthProblem(error)
     throw error
   }
   return data as T

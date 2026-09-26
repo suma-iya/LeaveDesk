@@ -36,13 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     retry: false,
   })
 
-  // Any 401 or ACCOUNT_PENDING from another call re-checks /me, which moves
-  // the user to /login or the waiting page.
+  // A 401 from any other call means the session ended: show Sign in.
   useEffect(() => {
-    setAuthProblemHandler((error) => {
-      if (error.status === 401) queryClient.setQueryData(keys.me, null)
-      else void queryClient.invalidateQueries({ queryKey: keys.me })
-    })
+    setAuthProblemHandler(() => queryClient.setQueryData(keys.me, null))
   }, [queryClient])
 
   // Drop every cached query except /me, which is updated in place: the
@@ -81,7 +77,7 @@ export function useAuth() {
   return context
 }
 
-/** The signed-in, active user. Only call inside routes behind RequireActive. */
+/** The signed-in user. Only call inside routes behind RequireAuth. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useUser() {
   const { user } = useAuth()

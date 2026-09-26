@@ -10,21 +10,19 @@ import (
 	"github.com/suma-iya/leavedesk/backend/internal/store"
 )
 
-func TestInitialRoleStatus(t *testing.T) {
+func TestInitialRole(t *testing.T) {
 	tests := []struct {
-		name       string
-		hasHR      bool
-		wantRole   domain.Role
-		wantStatus domain.Status
+		name  string
+		hasHR bool
+		want  domain.Role
 	}{
-		{"first account ever becomes active HR", false, domain.RoleHR, domain.StatusActive},
-		{"later accounts wait for approval", true, domain.RoleEmployee, domain.StatusPending},
+		{"first account ever becomes HR", false, domain.RoleHR},
+		{"later accounts are employees", true, domain.RoleEmployee},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			role, status := InitialRoleStatus(tt.hasHR)
-			if role != tt.wantRole || status != tt.wantStatus {
-				t.Fatalf("got %s/%s, want %s/%s", role, status, tt.wantRole, tt.wantStatus)
+			if got := InitialRole(tt.hasHR); got != tt.want {
+				t.Fatalf("got %s, want %s", got, tt.want)
 			}
 		})
 	}
@@ -51,9 +49,8 @@ type fakeStore struct {
 	created *domain.User
 }
 
-func (f *fakeStore) CreateUser(_ context.Context, n store.NewUser, decide func(bool) (domain.Role, domain.Status)) (*domain.User, error) {
-	role, status := decide(f.hasHR)
-	f.created = &domain.User{Email: n.Email, FirstName: n.FirstName, Role: role, Status: status}
+func (f *fakeStore) CreateUser(_ context.Context, n store.NewUser, decide func(bool) domain.Role) (*domain.User, error) {
+	f.created = &domain.User{Email: n.Email, FirstName: n.FirstName, Role: decide(f.hasHR)}
 	return f.created, nil
 }
 
@@ -96,8 +93,8 @@ func TestRegister(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if u.Email != "rakib.h@company.test" || u.Status != domain.StatusPending {
-				t.Fatalf("email must be lower-cased and status pending, got %+v", u)
+			if u.Email != "rakib.h@company.test" || u.Role != domain.RoleEmployee {
+				t.Fatalf("email must be lower-cased and the role employee, got %+v", u)
 			}
 		})
 	}

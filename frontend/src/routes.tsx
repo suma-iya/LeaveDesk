@@ -1,9 +1,8 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom'
 import { AuthProvider } from '@/features/auth/AuthProvider'
-import { GuestOnly, HomeRedirect, RequireActive, RequirePending, RequireRole } from '@/features/auth/guards'
+import { GuestOnly, HomeRedirect, RequireAuth, RequireRole } from '@/features/auth/guards'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { SignInPage } from '@/features/auth/SignInPage'
-import { WaitingPage } from '@/features/auth/WaitingPage'
 import { HistoryPage } from '@/features/employee/HistoryPage'
 import { MyLeavePage } from '@/features/employee/MyLeavePage'
 import { RequestDetailsPage } from '@/features/employee/RequestDetailsPage'
@@ -30,9 +29,8 @@ export const router = createBrowserRouter([
           { path: '/register', element: <RegisterPage /> },
         ],
       },
-      { element: <RequirePending />, children: [{ path: '/waiting', element: <WaitingPage /> }] },
       {
-        element: <RequireActive />,
+        element: <RequireAuth />,
         children: [{
           element: <AppShell />,
           children: [

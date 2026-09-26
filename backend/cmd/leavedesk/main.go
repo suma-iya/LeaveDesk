@@ -22,6 +22,7 @@ import (
 	"github.com/suma-iya/leavedesk/backend/internal/config"
 	"github.com/suma-iya/leavedesk/backend/internal/domain"
 	"github.com/suma-iya/leavedesk/backend/internal/httpapi"
+	"github.com/suma-iya/leavedesk/backend/internal/leave"
 	"github.com/suma-iya/leavedesk/backend/internal/seed"
 	"github.com/suma-iya/leavedesk/backend/internal/store"
 )
@@ -68,8 +69,12 @@ func serve() error {
 	defer db.Close()
 
 	server := &http.Server{
-		Addr:              ":" + cfg.Port,
-		Handler:           httpapi.NewServer(cfg, db, accounts(cfg, db)).Handler(),
+		Addr: ":" + cfg.Port,
+		Handler: httpapi.NewServer(cfg, httpapi.Deps{
+			Users:    db,
+			Accounts: accounts(cfg, db),
+			Leave:    leave.NewService(db, leave.NewPolicy(cfg.DefaultLimits), today(cfg)),
+		}).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	errs := make(chan error, 1)
@@ -112,10 +117,13 @@ func runSeed(args []string) error {
 	return seed.Run(ctx, db.Pool(), cfg.UploadDir, cfg.Location, *reset)
 }
 
+// today is the current calendar day in the company timezone.
+func today(cfg *config.Config) func() time.Time {
+	return func() time.Time { return domain.DateOf(time.Now().In(cfg.Location)).Time }
+}
+
 func accounts(cfg *config.Config, db *store.Store) *account.Service {
-	return account.NewService(db, cfg.AllowedEmailDomains, func() time.Time {
-		return domain.DateOf(time.Now().In(cfg.Location)).Time
-	})
+	return account.NewService(db, cfg.AllowedEmailDomains, today(cfg))
 }
 
 // changeRole implements `leavedesk promote|demote --email x@y.com`.

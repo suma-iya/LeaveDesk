@@ -12,13 +12,24 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5" // registers pgx5://
 	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/suma-iya/leavedesk/backend/migrations"
 )
 
+// querier is satisfied by both the pool and a transaction, so the same
+// query methods run inside or outside a transaction.
+type querier interface {
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 type Store struct {
 	pool *pgxpool.Pool
+	db   querier // the pool, or a transaction inside InUserLock
 }
 
 // Open connects with retries: in docker-compose the API can start a moment
@@ -29,7 +40,7 @@ func Open(ctx context.Context, url string) (*Store, error) {
 		pool, err := pgxpool.New(ctx, url)
 		if err == nil {
 			if err = pool.Ping(ctx); err == nil {
-				return &Store{pool: pool}, nil
+				return &Store{pool: pool, db: pool}, nil
 			}
 			pool.Close()
 		}

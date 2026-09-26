@@ -23,6 +23,16 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /api/me", s.signedIn(s.me))
 	mux.Handle("PATCH /api/me", s.active(s.updateMe))
 	mux.Handle("POST /api/me/password", s.active(s.changePassword))
+	mux.Handle("GET /api/me/balances", s.active(s.myBalances))
+
+	// Leave requests
+	mux.Handle("GET /api/requests", s.active(s.listRequests))
+	mux.Handle("POST /api/requests", s.active(s.createRequest))
+	mux.Handle("GET /api/requests/{id}", s.active(s.getRequest))
+	mux.Handle("PATCH /api/requests/{id}", s.active(s.updateRequest))
+	mux.Handle("POST /api/requests/{id}/cancel", s.active(s.cancelRequest))
+	mux.Handle("POST /api/requests/{id}/decision", s.hrOnly(s.decideRequest))
+	mux.Handle("GET /api/requests/{id}/overlaps", s.hrOnly(s.requestOverlaps))
 
 	mux.Handle("/api/", s.public(func(w http.ResponseWriter, r *http.Request) error {
 		writeErr(w, http.StatusNotFound, "NOT_FOUND", "No such endpoint.")

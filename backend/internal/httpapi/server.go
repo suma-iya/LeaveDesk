@@ -13,6 +13,7 @@ import (
 	"github.com/suma-iya/leavedesk/backend/internal/auth"
 	"github.com/suma-iya/leavedesk/backend/internal/config"
 	"github.com/suma-iya/leavedesk/backend/internal/domain"
+	"github.com/suma-iya/leavedesk/backend/internal/leave"
 )
 
 // UserLoader is what the auth middleware needs to reload the caller.
@@ -28,15 +29,24 @@ type Server struct {
 	google   *auth.Google // nil when Google sign-in is not configured
 	users    UserLoader
 	accounts *account.Service
+	leave    *leave.Service
 	today    func() time.Time
 }
 
-func NewServer(cfg *config.Config, users UserLoader, accounts *account.Service) *Server {
+// Deps are the services the HTTP layer calls.
+type Deps struct {
+	Users    UserLoader
+	Accounts *account.Service
+	Leave    *leave.Service
+}
+
+func NewServer(cfg *config.Config, d Deps) *Server {
 	s := &Server{
 		cfg:      cfg,
 		sessions: auth.NewSessions(cfg.JWTSecret, cfg.SessionTTL, cfg.CookieSecure),
-		users:    users,
-		accounts: accounts,
+		users:    d.Users,
+		accounts: d.Accounts,
+		leave:    d.Leave,
 		today:    func() time.Time { return domain.DateOf(time.Now().In(cfg.Location)).Time },
 	}
 	if cfg.GoogleEnabled() {

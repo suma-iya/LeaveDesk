@@ -18,7 +18,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/suma-iya/leavedesk/backend/internal/account"
 	"github.com/suma-iya/leavedesk/backend/internal/config"
+	"github.com/suma-iya/leavedesk/backend/internal/domain"
 	"github.com/suma-iya/leavedesk/backend/internal/httpapi"
 	"github.com/suma-iya/leavedesk/backend/internal/seed"
 	"github.com/suma-iya/leavedesk/backend/internal/store"
@@ -37,6 +39,8 @@ func main() {
 		err = serve()
 	case "seed":
 		err = runSeed(os.Args[2:])
+	case "promote", "demote":
+		err = changeRole(command, os.Args[2:])
 	default:
 		err = fmt.Errorf("unknown command %q (use serve | seed | promote | demote)", command)
 	}
@@ -65,7 +69,7 @@ func serve() error {
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           httpapi.Router(),
+		Handler:           httpapi.NewServer(cfg, db, accounts(cfg, db)).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	errs := make(chan error, 1)
@@ -106,4 +110,41 @@ func runSeed(args []string) error {
 	}
 	defer db.Close()
 	return seed.Run(ctx, db.Pool(), cfg.UploadDir, cfg.Location, *reset)
+}
+
+func accounts(cfg *config.Config, db *store.Store) *account.Service {
+	return account.NewService(db, cfg.AllowedEmailDomains, func() time.Time {
+		return domain.DateOf(time.Now().In(cfg.Location)).Time
+	})
+}
+
+// changeRole implements `leavedesk promote|demote --email x@y.com`.
+func changeRole(command string, args []string) error {
+	flags := flag.NewFlagSet(command, flag.ExitOnError)
+	email := flags.String("email", "", "account email")
+	_ = flags.Parse(args)
+	if *email == "" {
+		return fmt.Errorf("usage: leavedesk %s --email someone@company.test", command)
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+	db, err := store.Open(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	svc := accounts(cfg, db)
+	if command == "promote" {
+		err = svc.Promote(ctx, *email)
+	} else {
+		err = svc.Demote(ctx, *email)
+	}
+	if err != nil {
+		return err
+	}
+	slog.Info("role changed", "command", command, "email", *email)
+	return nil
 }

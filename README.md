@@ -1,275 +1,181 @@
-# Employee Leave Tracker (LeaveDesk)
+# LeaveDesk: Employee Leave Tracker
 
-A full-stack web app where **employees** request leave and **HR** approves or rejects it.
-HR works from Pending / Approved / All requests tables with bulk decisions and a team calendar; employees see their yearly balance per leave type, request leave on a month picker, and follow each request's status.
-Users sign in with email and password, or with **Google**. Every API call is protected by a **JWT**.
+LeaveDesk is a full-stack web app for requesting and approving leave.
 
-- **Backend:** Go (standard-library `net/http`), PostgreSQL
-- **Frontend:** LeaveDesk, React 19 + TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query + Table
-- **Runs with:** `docker compose up` (3 containers: `frontend`, `backend`, `db`)
+- **Employees** see their yearly balance per leave type. They request leave on a calendar that skips weekends, attach a medical note or plan, and follow each request until HR decides.
+- **HR** approves or rejects requests, with Undo. HR also approves new accounts into a department, manages salary and per-person leave limits, and sees who is away on a team calendar.
 
-> **Current status.** The LeaveDesk frontend talks to the backend through one typed interface (`frontend/src/api/contract.ts`) with two implementations: a real `fetch` client and an in-memory mock. **The mock is on by default** (`VITE_USE_MOCK=true`), because the Go API still implements the earlier contract (see [Backend status](#backend-status)). Every screen works end to end on the mock; switching to the real API is one build flag once the endpoints below exist.
+Sign-in uses email and password, and optionally Google. The session is a JWT in an httpOnly cookie. Every rule is enforced by the Go API; the UI only mirrors the rules to give instant feedback.
 
-> The written explanation of the architecture, code components, API internals and Docker setup is in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+- **Backend:** Go 1.23 (`net/http`), PostgreSQL 16, pgx, golang-migrate
+- **Frontend:** React 19 + TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query and Table
+- **Runs with:** `docker compose up --build`, which starts three containers: `frontend`, `backend` and `db`
+
+The written explanation (architecture, key components, API internals, Docker) is in **[docs/EXPLANATION.md](docs/EXPLANATION.md)**.
 
 ---
 
-## Features
+## 1. What the app does
 
 | Employee | HR |
 |---|---|
-| **My leave:** available days in total and per type (Annual 16, Casual 3, Sick 3), stacked used/pending bars | **Pending:** all waiting requests with each person's yearly balance; filter by employee, department, type, date range |
-| **Request leave:** month picker (Fri + Sat weekends are never counted), live working-day count, balance and overlap checks, optional PDF/image attachment | **Approve / reject** from the table or the review page; reject asks for an optional note; every decision shows a toast with **Undo** for 5 s |
-| Edit or cancel a request while it is pending; **Request again** after a rejection | **Bulk** approve / reject selected rows |
-| **History** of decided requests with the HR note | **Review page:** employee card, yearly balance and "if approved" preview, teammates away on the same dates, attachment |
-| **Request details** with an in-page PDF preview | **Approved** and **All requests** tables, CSV export |
-| **Team calendar:** who is away each day | **Team calendar** including each person's remaining days (employees never see other people's balances) |
-| **Profile & settings:** photo, details, notification switches, password, light/dark theme | Same profile & settings |
+| **My leave:** available days in total and per type (Annual 16, Casual 3, Sick 3), shown as stacked used/pending bars | **Pending:** every waiting request, with each person's yearly "8/22 used" bar |
+| **Request leave:** a month picker where Fri and Sat are never counted, a live working-day count, and the same validation as the server | **Approve / Reject** from the table or the review page. Rejecting asks for an optional note. A toast offers **Undo** for 5 seconds |
+| Edit or cancel a request while it is pending. **Request again** after a rejection | **Review page:** employee card, "If approved: N days left", teammates away on the same dates, the attachment |
+| **History** of decided requests with HR's note | **Approved** and **All** tables. All has a **Mine** chip so HR can find their own requests |
+| **Request details** with an in-page PDF preview | **People:** approve new registrations into a department, and change department, salary (with history) and leave limits |
+| **Team calendar** overlay showing who is away each day | The same calendar, plus CSV **Export** of any table |
+| **Profile:** photo, name, date of birth, password, light/dark theme | The same profile page |
 
-Every list is sortable and paginated, turns into cards below 768px, and works in light and dark themes.
+The rules the server enforces:
 
-Business rules (enforced by the mock API today, and by the Go API for its endpoints):
-- The end date cannot be before the start date, and a request must contain at least one working day.
-- A request cannot overlap one of the employee's own pending or approved leaves. The Go API also has a Postgres exclusion constraint, so this holds even for simultaneous requests.
-- A request cannot exceed the available balance for its type (allowance − used − pending).
-- Only `pending` requests can be decided, edited or cancelled; employees can only see and change their **own** requests.
+- The first account ever created becomes an active HR. Every later account is **pending** until HR approves it.
+- A request needs at least one working day. It cannot overlap your own pending or approved leave, and cannot exceed `limit − used − pending` for its type.
+- Only pending requests can be edited, cancelled or decided. **Nobody can decide their own request**; HR's own requests go to another HR.
+- Salary is visible to HR only. HR cannot change anyone's name, email, date of birth, password, role or joining date. HR cannot change their own salary or limits either.
 
-## Tech stack
+## 2. Tech stack and why
 
 | Layer | Choice | Why |
 |---|---|---|
-| API | Go 1.23, `net/http` (Go 1.22+ method routing such as `GET /api/employees/{id}`) | No framework needed. Small, fast, easy to explain |
-| DB driver | `pgx/v5` with a connection pool | The standard high-performance Postgres driver for Go |
-| Auth | `golang-jwt/jwt/v5` (HS256), `bcrypt`, Google ID token verification | Token-based sessions, safe password storage, Google sign-in |
-| Database | PostgreSQL 16 | Relational data with foreign keys, CHECK constraints and date math |
+| HTTP | Go 1.23 standard library `net/http` (method + `{id}` patterns from Go 1.22) | Enough for every route, with no framework to learn or explain. This follows the project's backend rule. |
+| Database | PostgreSQL 16 + `pgx/v5` (pgxpool), hand-written SQL | Foreign keys, CHECK constraints, date maths and advisory locks for the concurrency rules |
+| Migrations | `golang-migrate` with SQL embedded in the binary | Runs on startup, so there are no manual steps |
+| Auth | `bcrypt`, `golang-jwt/jwt/v5` (HS256), Google OpenID Connect | Salted password hashes, and a stateless signed session in an httpOnly cookie |
+| Logging | `log/slog` (JSON) | One structured line per request |
 | UI | React 19 + TypeScript (strict) + React Router 7, built by Vite | Typed components and client-side routing |
-| Data | TanStack Query (fetching, caching, mutations) + TanStack Table (sorting, selection, pagination) | Server state and tables without hand-written plumbing |
-| Components | shadcn/ui (Radix primitives) + Tailwind CSS v4, lucide-react icons, Geist font | Accessible components; all colours are light/dark design tokens |
-| Dates & PDF | date-fns, react-pdf | Year-always date formats and Fri/Sat working-day maths; in-page PDF preview |
-| Google button | `@react-oauth/google` | Wraps Google Identity Services |
-| Serving | nginx | Serves the built React files and reverse-proxies `/api` to Go |
-| Containers | Docker multi-stage builds + docker-compose | One command to run everything |
+| Data | TanStack Query (cache, refetch after changes) and TanStack Table (server-paged tables) | Server state without hand-written loading and caching |
+| Components | shadcn/ui (Radix) + Tailwind CSS v4, lucide icons, Geist font | Accessible building blocks. Every colour is a light/dark design token |
+| Dates, PDF | date-fns, react-pdf | Year-always date formats and Fri/Sat working-day maths, plus an in-page PDF preview |
+| Serving | nginx | Serves the built UI and proxies `/api` to Go on the same origin |
 
-## Run it with Docker
+## 3. Setup
 
-Prerequisites: Docker Desktop (or Docker Engine with the compose plugin).
+Prerequisites: Docker Desktop, or Docker Engine with the compose plugin.
 
 ```bash
-git clone <repo-url> employee-leave-tracker
-cd employee-leave-tracker
 cp .env.example .env
-```
-
-Open `.env` and set `JWT_SECRET` to a long random string. You can generate one with `openssl rand -hex 32`. Then run:
-
-```bash
 docker compose up --build
 ```
 
-Open **http://localhost:3000**.
+Before starting, open `.env` and set `JWT_SECRET` to a long random string; `openssl rand -hex 32` makes one.
 
-With the default `VITE_USE_MOCK=true`, the UI runs on built-in demo data (it resets when the page reloads). The login page has buttons that fill these in:
+Open **http://localhost:3000**. The database starts empty and the migrations run automatically.
 
-| Role | Email | Password |
+**First run: how the first account becomes HR.** While no HR exists, the Register page says so. The first account you create becomes an **active HR** straight away. Everyone who registers after that is **pending** until HR approves them on the People page.
+
+**Demo data (optional).** To replace everything with a demo company:
+
+```bash
+make seed
+```
+
+This is the same as `docker compose exec backend /app/leavedesk seed --reset`. Every demo password is `password123`.
+
+| Role | Email | Notes |
 |---|---|---|
-| HR | `farhana.islam@leavedesk.test` | `password123` |
-| Employee | `nusrat.jahan@leavedesk.test` | `password123` |
+| HR | `hr@company.test` | Farhana Islam |
+| Employee | `nusrat.j@company.test` | 8 days available, a pending request for 04–08 Oct, and a rejected request with a PDF |
+| Pending | `rakib.h@company.test` | Waiting for approval, so this account only sees the waiting page |
 
-The demo data has about 14 people in 7 departments, a busy week on 4–8 Oct 2026, and a rejected request with a PDF attachment.
+The seed also creates 12 more employees in 7 departments. The week of 04–08 Oct 2026 is busy.
 
-The Go backend still starts, creates its tables and seeds its own accounts (`manager@example.com` / `manager123`, …); you can use them against the API directly, for example with curl (see [API reference](#api-reference)). Build the frontend with `VITE_USE_MOCK=false` to point it at `/api` once the LeaveDesk endpoints exist.
-
-Useful commands:
-
-```bash
-docker compose logs -f backend
-docker compose down
-docker compose down -v
-```
-
-`logs -f backend` follows the API request log. `down` stops the containers and keeps the data. `down -v` stops them and also deletes the database volume.
-
-### Enabling Google sign-in (optional)
-
-1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), go to **Create credentials → OAuth client ID → Web application**.
-2. Under **Authorized JavaScript origins**, add `http://localhost:3000`.
-3. Put the client ID in `.env` as `GOOGLE_CLIENT_ID=...apps.googleusercontent.com`.
-4. Optionally list manager accounts: `MANAGER_EMAILS=you@gmail.com`. Set `GOOGLE_AUTO_SIGNUP=false` if only people a manager has added should be able to sign in.
-5. Run `docker compose up -d` again. The **Continue with Google** button appears on the login page.
-
-When `GOOGLE_CLIENT_ID` is empty, the button is hidden and the password login still works. Google sign-in needs the real API, so it only appears in a `VITE_USE_MOCK=false` build.
-
-## Run without Docker (development)
-
-You need Go 1.23+, Node 20+ and a local Postgres. Start the backend:
+**Promoting someone to HR.** This is not in the UI by design:
 
 ```bash
-cd backend
-export DATABASE_URL="postgres://leave:leave_secret@localhost:5432/leave_tracker?sslmode=disable"
-export JWT_SECRET="dev-secret-at-least-16-chars"
-export SEED_MANAGER_EMAIL=manager@example.com SEED_MANAGER_PASSWORD=manager123 SEED_DEMO_DATA=true
-go run ./cmd/api
+docker compose exec backend /app/leavedesk promote --email someone@company.test
+docker compose exec backend /app/leavedesk demote --email someone@company.test
 ```
 
-In a second terminal, start the frontend:
+`demote` refuses to remove the last HR.
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+**Google sign-in (optional).** Create an OAuth client of type "Web application" with the redirect URI `http://localhost:3000/api/auth/google/callback`. Put its ID and secret in `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, then run `docker compose up -d` again. Google signs people in to existing accounts; new people register first, because Google doesn't provide a date of birth. Email and password work without any Google configuration.
 
-Open http://localhost:5173. Vite proxies `/api` to `localhost:8080`, just as nginx does in Docker. The frontend alone (`npm run dev`) is enough to try every screen on the mock API; run it with `VITE_USE_MOCK=false npm run dev` to call the Go server instead.
+**Other commands**
 
-Other frontend scripts: `npm run build` (type-check with `tsc -b`, then bundle), `npm run typecheck`, `npm run lint` (oxlint).
-
-## Tests
-
-The service layer has table-driven unit tests. They use in-memory fakes, so no database is needed:
-
-```bash
-cd backend && go test ./...
-```
-
-If your local Go is older than 1.23, run the tests in Docker instead:
-
-```bash
-docker run --rm -v "$PWD/backend":/src -w /src golang:1.23-alpine go test ./...
-```
-
-## Project structure
-
-```
-.
-├── docker-compose.yml          # db + backend + frontend
-├── .env.example                # all configuration, documented
-├── docs/ARCHITECTURE.md        # written explanation (architecture, internals, Docker)
-├── backend/
-│   ├── Dockerfile              # multi-stage: golang → alpine
-│   ├── cmd/api/main.go         # entry point: config → DB → wiring → HTTP server
-│   └── internal/
-│       ├── config/             # env vars → Config struct
-│       ├── database/           # pgx pool, retry, embedded SQL migrations
-│       ├── model/              # domain types (User, Leave, Date) + error kinds
-│       ├── repository/         # SQL only (parameterised queries)
-│       ├── service/            # business rules + unit tests
-│       ├── handler/            # HTTP: decode → service → JSON, routes
-│       ├── middleware/         # logging, panic recovery, JWT auth, role check
-│       ├── auth/               # bcrypt, JWT issue/parse, Google token verifier
-│       ├── respond/            # JSON response helpers
-│       └── seed/               # first manager + demo data
-└── frontend/
-    ├── Dockerfile              # multi-stage: node:20-alpine build → nginx:alpine
-    ├── nginx.conf              # static files + /api reverse proxy + SPA fallback
-    ├── public/mock/            # sample PDF attachment for the demo data
-    └── src/
-        ├── api/                # contract.ts (the LeaveApi interface), one fetch client per
-        │                       # resource, mock.ts + mockData.ts, queries.ts (query keys + shared hooks)
-        ├── components/         # Button system, DataTable, badges, avatar, bars, cards (+ ui/ from shadcn)
-        ├── features/
-        │   ├── auth/           # AuthProvider (JWT session), route guards, login page
-        │   ├── manager/        # HR: Pending, Approved, All requests, request review
-        │   ├── employee/       # My leave, History, Request leave, request details, PDF preview
-        │   ├── calendar/       # Team calendar (shared)
-        │   └── profile/        # Profile & settings
-        ├── layouts/            # AppShell: desktop top bar + avatar menu, mobile app bar + tab bar
-        ├── lib/                # dates.ts, leave.ts (working days, balances), theme.ts, jwt.ts
-        ├── routes.tsx          # route tree with role guards
-        └── types.ts            # domain types shared by API and UI
-```
-
-## Architecture in brief
-
-```
-Browser ──► nginx (frontend container, :3000→80)
-              ├── /            → React build (index.html, JS, CSS)
-              └── /api/*       → proxy_pass http://backend:8080
-                                   │
-                         Go API (backend container)
-              Logger → Recover → Authenticate(JWT) → RequireRole(MANAGER) → Handler
-                                   │
-                              Service (rules)
-                                   │
-                            Repository (SQL)
-                                   │
-                         PostgreSQL (db container, volume pgdata)
-```
-
-- **Typed API seam.** Pages call TanStack Query hooks; the hooks call `api.*`, which is either the `fetch` client or the in-memory mock, chosen once at build time. Nothing else in the UI knows which one is active.
-- **One origin.** The browser only talks to nginx, so there is no CORS setup and the API port is never published.
-- **Layered backend.** A handler parses HTTP, a service applies rules, a repository runs SQL. Services depend on interfaces, which is how they are unit-tested with fakes.
-- **JWT auth.** Login returns a signed JWT holding the user id. On every request the middleware verifies the signature and loads the user, so a deleted account is locked out at once and the role always comes from the database.
-- **Google sign-in.** The browser gets an ID token from Google, and the backend verifies it with Google (checking that it was issued for this app's client ID). The backend then finds, links or creates the user and issues **its own** JWT, so both login methods end in the same kind of session.
-
-### Frontend: how the data flows
-
-An HR approval on the Pending page shows how the pieces fit together:
-
-1. `PendingPage` renders a `DataTable` (TanStack Table) from `useRequestRows({ status: 'pending', …filters })`, a TanStack Query hook. Its query key includes the filters, so changing a filter fetches, caches and shows the new rows while keeping the old ones visible.
-2. HR clicks the green **Approve** icon button. `useDecide()` runs `api.decideRequest(id, { status: 'approved' })`.
-3. `api` is `mockApi` (default) or the fetch client. The fetch client sends `POST /api/requests/LV-2041/decision` with `Authorization: Bearer <jwt>`; the mock checks the same rules in memory.
-4. On success a toast says "Approved …" with **Undo** for 5 seconds; Undo calls `api.reopenRequest(id)`.
-5. Either way, `invalidateLeaveData()` marks every request list, request detail, balance and calendar query as stale. Every mounted query refetches, so the table, the "Pending" count in the nav and the balances update together.
-
-Routing uses the role in the JWT: `/hr/*` renders only for `hr`, `/me/*` only for `employee` (`features/auth/guards.tsx`). This is navigation only; the API checks the role again on every call.
-
-### Backend: brief explanation of inner workings
-
-An approval in the current Go API shows how the backend pieces fit together:
-
-1. A client sends `PATCH /api/leaves/42/status` with `Authorization: Bearer <jwt>`; in Docker, nginx forwards it to `backend:8080`.
-2. `Logger` starts a timer. `Authenticate` verifies the JWT signature and expiry, loads the user (and their current role) and puts them in the request context. `RequireRole(MANAGER)` checks the role.
-3. `handler.ReviewLeave` reads `{id}` and decodes the JSON body. It rejects unknown fields and bodies over 1 MB.
-4. `LeaveService.Review` validates the status (only `APPROVED` or `REJECTED`) and calls the repository.
-5. The repository runs `UPDATE leaves SET status=$1 … WHERE id=$4 AND status='PENDING'`. If 0 rows change, the service works out whether the leave doesn't exist (`404`) or was already reviewed (`409`).
-6. The handler writes the updated leave as JSON.
-
-The full walkthrough, including login and Google flows, the schema, the API table, the error mapping and the Docker details, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## Backend status
-
-The Go API was built for the first version of the UI. LeaveDesk needs a few things it does not have yet: roles named `hr` / `employee`, request ids like `LV-2041`, working days that skip Fri + Sat, per-type allowances and balances, attachments, profile fields (first/last name, age, job title, years at company, avatar), bulk decisions and a calendar feed. `frontend/src/api/*.ts` already calls these endpoints; implementing them in Go is the next step:
-
-| Method & path | Used by |
+| Command | What it does |
 |---|---|
-| `GET /auth/config`, `POST /auth/login`, `POST /auth/google`, `GET /auth/me` | login, session restore |
-| `GET /requests?status=&type=&department=&from=&to=&year=&q=&mine=` | every table |
-| `GET /requests/{id}` · `POST /requests` · `PUT /requests/{id}` · `DELETE /requests/{id}` | details, request form, cancel |
-| `POST /requests/{id}/decision` · `DELETE /requests/{id}/decision` · `POST /requests/decisions` | approve/reject, Undo, bulk |
-| `GET /balances?employeeId=&year=` · `GET /policy` · `GET /departments` | balance cards, filters |
-| `GET /calendar?month=yyyy-MM&department=&type=&includePending=` | team calendar |
-| `GET /profile` · `PUT /profile` · `POST /profile/avatar` · `POST /attachments` | profile, uploads |
+| `make test` | `go vet` and the Go tests, run in a Go container |
+| `cd frontend && npm test` | The TypeScript unit tests (`lib/leave.ts`), using Node's built-in test runner |
+| `make logs` | Follows the API's JSON request log |
+| `make reset` | `docker compose down -v`, which deletes the database and uploaded files |
 
-The request/response shapes are the TypeScript types in `frontend/src/types.ts`, and `frontend/src/api/mock.ts` is a working reference for every rule.
+**Development without Docker for the UI:** run `cd frontend && npm install`, then `API_PROXY=http://localhost:3000 npm run dev` while the stack runs. Vite proxies `/api` to it, just as nginx does.
 
-## API reference (current Go API)
+## 4. Architecture
 
-All routes are under `/api`. Every error response has the shape `{"error": "message"}`.
-
-| Method & path | Auth | Purpose |
-|---|---|---|
-| `GET /health` | public | Liveness check (used by the Docker healthcheck) |
-| `GET /auth/config` | public | `{google_client_id, timezone, demo_mode}` for the login page |
-| `POST /auth/login` | public | `{email, password}` → `{token, user}` |
-| `POST /auth/google` | public | `{credential}` (Google ID token) → `{token, user}` |
-| `GET /auth/me` | any user | Current user from the JWT |
-| `GET /leaves/mine` | employee | My leave requests |
-| `GET /leaves/mine/summary` | employee | My counts + approved days this year |
-| `POST /leaves` | employee | Apply: `{leave_type, start_date, end_date, reason}` |
-| `DELETE /leaves/{id}` | employee (owner) | Cancel my own **pending** request |
-| `GET /dashboard?date=YYYY-MM-DD` | manager | Status counts, requests on date, on leave, employee count |
-| `GET /leaves?status=&created_on=&employee_id=` | manager | All requests with filters |
-| `PATCH /leaves/{id}/status` | manager | `{status: APPROVED\|REJECTED, comment}` |
-| `GET /employees` | manager | Employees with leave counts |
-| `POST /employees` | manager | Create: `{name, email, department, password?}` |
-| `GET /employees/{id}` | manager | Profile, summary and full leave list |
-| `PUT /employees/{id}` | manager | Update |
-| `DELETE /employees/{id}` | manager | Delete (their leaves are deleted too) |
-
-Example:
-
-```bash
-TOKEN=$(curl -s -X POST localhost:3000/api/auth/login \
-  -d '{"email":"manager@example.com","password":"manager123"}' | sed 's/.*"token":"\([^"]*\)".*/\1/')
-curl -s -H "Authorization: Bearer $TOKEN" "localhost:3000/api/dashboard"
 ```
+Browser ──► nginx  (frontend container, published as :3000)
+             ├── /         React build: index.html, hashed JS/CSS, SPA fallback
+             └── /api/*    proxy_pass http://backend:8080   (same origin, so the cookie just works)
+                              │
+                        Go API  (backend container, :8080, not published)
+             log → recover → session cookie → reload user → pending gate → role check → handler
+                              │
+                        service  (account · leave · hr · files)   ← all business rules
+                              │
+                        store    (pgx, hand-written SQL)
+                              │                        ╲
+                        PostgreSQL (db, volume pgdata)   files on volume uploads (/data/uploads)
+```
+
+**A request's journey**, using HR approving LV-2041:
+
+1. The browser sends `POST /api/requests/2041/decision` with the `ld_session` cookie. JavaScript never sees the token.
+2. nginx forwards the request to `backend:8080`.
+3. The middleware verifies the JWT, then **reloads the user** from Postgres. It rejects pending accounts with `403 ACCOUNT_PENDING` and non-HR users with `403 FORBIDDEN`.
+4. The handler decodes `{status, note}` and calls `leave.Service.Decide`.
+5. The service applies `CanDecide`: HR only, not your own request (`SELF_APPROVAL`), and only while the request is pending.
+6. The store runs `UPDATE … WHERE id=$1 AND status='pending'`. If someone else decided first, zero rows change and the result is `409 NOT_PENDING`.
+7. The handler returns JSON. The UI refreshes every list, balance and calendar that shows this request.
+
+## 5. Inner workings (summary)
+
+- **Working days:** the dates from start to end that are not Friday or Saturday. The same function exists in Go (`leave.WorkingDays`) and TypeScript (`lib/leave.ts`), with the same test cases on both sides.
+- **Balance maths:** `available = limit − used(approved) − pending`. The limit is the policy default from config unless HR set an override for that person and year. A request counts against the year it starts in.
+- **Validation order:** type → both dates → start ≤ end → at least one working day → reason length → overlap with your own pending or approved leave → enough balance. The error messages are exact, for example `Not enough Annual leave: 6 days available, 9 requested.`
+- **Concurrency:** create and edit run in a transaction holding a per-user advisory lock, so two simultaneous submissions can't both pass the checks. Decisions are atomic on `status='pending'`. The first-HR check runs under its own advisory lock.
+- **Pending gate:** pending users can call `/api/me` and sign out; everything else answers `403 ACCOUNT_PENDING`, and the UI shows the waiting page.
+- **Undo:** there is no undo endpoint. The UI holds a decision for 5 seconds before sending it. If the tab closes, it is sent with `fetch keepalive`.
+
+The details are in [docs/EXPLANATION.md](docs/EXPLANATION.md).
+
+## 6. Docker
+
+| Service | Image | Purpose |
+|---|---|---|
+| `db` | `postgres:16-alpine` | The database. Data lives in the `pgdata` volume. Its healthcheck gates the backend |
+| `backend` | multi-stage build: `golang:1.23-alpine` → `alpine:3.20` (non-root) | The `leavedesk` binary. Runs migrations on start and stores files in the `uploads` volume |
+| `frontend` | multi-stage build: `node:20-alpine` (`tsc -b && vite build`) → `nginx:alpine` | Serves the UI and proxies `/api/`. The only published port, `3000:80` |
+
+nginx allows 6 MB request bodies for 5 MB attachments. It re-resolves `backend` through Docker's DNS on every request, and serves `.mjs` files as JavaScript for the PDF worker.
+
+## 7. Known limitations
+
+- There are no email notifications; people check the app for decisions.
+- There is no deactivation or offboarding flow. Only pending registrations can be removed.
+- HR promotion and demotion are CLI-only.
+- There is a single approval step (employee → HR) with no team-lead step. With only one HR account, HR's own requests can't be decided until a second HR exists.
+- There is no password reset. The sign-in hint says "Ask HR", but by design HR cannot change passwords, so a reset needs a database operator. That is a gap to close before production.
+- A request that crosses New Year counts entirely against the year it starts in.
+- The audit log is written for every HR change but is not shown in the UI yet.
+
+## API reference
+
+All endpoints are under `/api`. Errors look like `{"error": "CODE", "message": "human text"}`, with status 400 (validation), 401, 403, 404 or 409 (conflict).
+
+| Method & path | Who |
+|---|---|
+| `GET /health` | public |
+| `GET /auth/bootstrap` · `POST /auth/register` · `POST /auth/login` · `POST /auth/logout` | public |
+| `GET /auth/google/start` · `GET /auth/google/callback` | public (only when configured) |
+| `GET /me` | any signed-in user (pending included) |
+| `PATCH /me` · `POST /me/password` · `GET /me/balances?year=` | active |
+| `GET /requests?scope=mine\|all&status=&type=&department=&q=&from=&to=&year=&page=&pageSize=` | active (`scope=all`: HR) |
+| `POST /requests` (JSON or multipart with `attachment`) · `GET /requests/{id}` · `PATCH /requests/{id}` · `POST /requests/{id}/cancel` | active; owner or HR |
+| `POST /requests/{id}/decision` · `GET /requests/{id}/overlaps` · `GET /requests/export.csv` | HR |
+| `GET /calendar?month=2026-10&department=&type=&includePending=` | active (never returns balances) |
+| `GET /hr/registrations` · `POST /hr/registrations/{id}/approve` · `POST /hr/registrations/{id}/reject` | HR |
+| `GET /hr/employees` · `GET /hr/employees/{id}` · `PATCH /hr/employees/{id}` · `GET /hr/employees/export.csv` | HR |
+| `GET /departments` (active) · `POST /departments` (HR) | |
+| `POST /files` · `GET /files/{id}` | active; files are served to the owner or HR, avatars to anyone signed in |

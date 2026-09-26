@@ -6,7 +6,6 @@ import { DataTable } from '@/components/DataTable'
 import { PageHeader } from '@/components/PageHeader'
 import { useAuth, useUser } from '@/features/auth/AuthProvider'
 import { HeaderActions } from '@/layouts/HeaderActions'
-import { formatRange, toISODate } from '@/lib/dates'
 import { available, sumBalances } from '@/lib/leave'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { usePaging } from '@/lib/usePaging'
@@ -28,7 +27,6 @@ export function MyLeavePage() {
   const { filters, type, year: filterYear, reset } = useYearTypeFilters()
   const paging = usePaging(`${type}-${filterYear}`)
   const pending = useMyRequests({ status: ['pending'], type, year: filterYear, page: paging.page, pageSize: paging.pageSize })
-  const upcoming = useMyRequests({ status: ['pending', 'approved'], from: toISODate(new Date()), pageSize: 50 })
   const cancel = useCancelRequest()
   const [cancelling, setCancelling] = useState<LeaveRequest | null>(null)
 
@@ -47,16 +45,11 @@ export function MyLeavePage() {
   }, [])
 
   const free = balances ? available(sumBalances(balances)) : undefined
-  const next = [...(upcoming.data?.items ?? [])].sort((a, b) => a.startDate.localeCompare(b.startDate))[0]
 
   return (
     <>
       <PageHeader
         title={free === undefined ? `Hi ${user.firstName}` : `Hi ${user.firstName}, you have ${free} leave ${free === 1 ? 'day' : 'days'} available`}
-        subtitle={next ? (
-          <>Next leave: <strong className="font-semibold text-foreground">{formatRange(next.startDate, next.endDate)}</strong>,{' '}
-            {next.status === 'pending' ? 'waiting for HR approval.' : 'approved.'}</>
-        ) : 'No upcoming leave.'}
         actions={<HeaderActions />}
       />
       {isMobile ? <MobileBalances balances={balances} /> : <BalanceRow balances={balances} year={year} />}
@@ -70,6 +63,7 @@ export function MyLeavePage() {
         page={paging.page}
         pageSize={paging.pageSize}
         onPageChange={paging.setPage}
+        onPageSizeChange={paging.setPageSize}
         isLoading={pending.isPending}
         error={pending.error}
         onRetry={() => pending.refetch()}

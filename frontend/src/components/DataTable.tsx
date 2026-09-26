@@ -5,9 +5,11 @@ import { AppButton, IconButton } from '@/components/AppButton'
 import { Card, CardTitle } from '@/components/Card'
 import { FilterSelect, SearchInput, type FilterDef, type SelectFilter } from '@/components/Filters'
 import { EmptyState, ErrorState } from '@/components/States'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/lib/useIsMobile'
+import { PAGE_SIZES } from '@/lib/usePaging'
 import { cn } from '@/lib/utils'
 
 declare module '@tanstack/react-table' {
@@ -30,6 +32,7 @@ export interface DataTableProps<T> {
   page: number
   pageSize: number
   onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
   isLoading: boolean
   error?: unknown
   onRetry?: () => void
@@ -41,9 +44,9 @@ export interface DataTableProps<T> {
 
 /**
  * The one table pattern for every list page: a card with a filter toolbar,
- * a TanStack Table, and "Showing 1–8 of 23 · Previous · Page 1 of 3 · Next".
- * Below 768px rows become cards, filters move into a bottom sheet and show
- * as removable chips, and paging moves into the title row.
+ * a TanStack Table, and a footer with "Showing 1–10 of 23", rows per page
+ * (10 / 20 / 40) and Previous · Page 1 of 3 · Next. Below 768px rows become
+ * cards and filters move into a bottom sheet shown as removable chips.
  */
 export function DataTable<T>(props: DataTableProps<T>) {
   const isMobile = useIsMobile()
@@ -71,18 +74,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
       <section className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           {props.title && <CardTitle className="mr-auto">{props.title}</CardTitle>}
-          <div className={cn('flex items-center gap-2', !props.title && 'ml-auto')}>
-            {props.filters && !props.filters.some((f) => f.kind === 'search') && (
+          {props.filters && !props.filters.some((f) => f.kind === 'search') && (
+            <div className={cn(!props.title && 'ml-auto')}>
               <MobileFilters filters={props.filters} onReset={props.onReset} part="button" />
-            )}
-            {total > 0 && (
-              <>
-                <span className="text-[13px] text-muted-foreground">{first}–{last} of {total}</span>
-                <IconButton icon={ChevronLeft} label="Previous page" variant="secondary" disabled={!canPrev} onClick={() => props.onPageChange(page - 1)} />
-                <IconButton icon={ChevronRight} label="Next page" variant="secondary" disabled={!canNext} onClick={() => props.onPageChange(page + 1)} />
-              </>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         {props.filters && props.filters.length > 0 && (
           <MobileFilters filters={props.filters} onReset={props.onReset}
@@ -94,6 +90,14 @@ export function DataTable<T>(props: DataTableProps<T>) {
               ? Array.from({ length: 3 }, (_, i) => <li key={i}><Skeleton className="h-28 w-full rounded-card" /></li>)
               : table.getRowModel().rows.map((row) => <li key={row.id}>{props.renderCard(row.original)}</li>)}
           </ul>
+        )}
+        {total > 0 && (
+          <footer className="flex items-center gap-2 text-[13px] text-muted-foreground">
+            <span className="mr-auto">{first}–{last} of {total}</span>
+            <PageSizeSelect value={pageSize} onChange={props.onPageSizeChange} />
+            <IconButton icon={ChevronLeft} label="Previous page" variant="secondary" disabled={!canPrev} onClick={() => props.onPageChange(page - 1)} />
+            <IconButton icon={ChevronRight} label="Next page" variant="secondary" disabled={!canNext} onClick={() => props.onPageChange(page + 1)} />
+          </footer>
         )}
       </section>
     )
@@ -151,12 +155,26 @@ export function DataTable<T>(props: DataTableProps<T>) {
       {total > 0 && (
         <footer className="flex flex-wrap items-center gap-3 border-t px-4 py-3 text-[13px] text-muted-foreground">
           <span className="mr-auto">Showing {first}–{last} of {total}</span>
+          <span className="flex items-center gap-2">
+            Rows per page
+            <PageSizeSelect value={pageSize} onChange={props.onPageSizeChange} />
+          </span>
           <AppButton icon={ChevronLeft} label="Previous" disabled={!canPrev} onClick={() => props.onPageChange(page - 1)} />
           <span className="whitespace-nowrap text-foreground">Page {page} of {pageCount}</span>
           <AppButton icon={ChevronRight} label="Next" disabled={!canNext} onClick={() => props.onPageChange(page + 1)} />
         </footer>
       )}
     </Card>
+  )
+}
+
+/** Rows per page: 10, 20 or 40. */
+function PageSizeSelect({ value, onChange }: { value: number; onChange: (size: number) => void }) {
+  return (
+    <Select value={String(value)} onValueChange={(v) => onChange(Number(v))}>
+      <SelectTrigger aria-label="Rows per page" className="h-9! w-[76px] rounded-md bg-surface max-md:h-11!"><SelectValue /></SelectTrigger>
+      <SelectContent>{PAGE_SIZES.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}</SelectContent>
+    </Select>
   )
 }
 

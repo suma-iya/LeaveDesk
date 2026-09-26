@@ -39,7 +39,7 @@ export function SignInPage() {
   const error = login.error?.message ?? params.get('error')
 
   return (
-    <AuthLayout title="Sign in" subtitle="Request leave and follow its status.">
+    <AuthLayout title="Sign in">
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
         <Field id="email" label="Email">
           <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={authInput} />

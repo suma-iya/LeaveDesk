@@ -57,7 +57,7 @@ func parseFilter(r *http.Request) (scope string, f leave.Filter, err error) {
 		}
 	}
 	if f.PageSize == 0 {
-		f.PageSize = 8
+		f.PageSize = 10
 	}
 	return scope, f, nil
 }

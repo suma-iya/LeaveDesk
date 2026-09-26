@@ -35,7 +35,7 @@ export function HistoryPage() {
 
   return (
     <>
-      <PageHeader title="History" subtitle="Requests that have been approved or rejected. Approved days are already taken off your balance."
+      <PageHeader title="History"
         actions={<HeaderActions />} />
       <DataTable
         title="Decided requests"
@@ -47,6 +47,7 @@ export function HistoryPage() {
         page={paging.page}
         pageSize={paging.pageSize}
         onPageChange={paging.setPage}
+        onPageSizeChange={paging.setPageSize}
         isLoading={rows.isPending}
         error={rows.error}
         onRetry={() => rows.refetch()}

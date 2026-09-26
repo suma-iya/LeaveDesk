@@ -47,7 +47,6 @@ export function RequestsPage() {
     <>
       <PageHeader
         title={list === 'approved' ? 'Approved' : 'All requests'}
-        subtitle={list === 'approved' ? 'Approved leave. These days are already taken off each person’s balance.' : 'Every leave request in any status.'}
         actions={<HeaderActions exportHref={api.requests.exportUrl({ ...f })} />}
       />
       {list === 'all' && (
@@ -69,6 +68,7 @@ export function RequestsPage() {
         page={paging.page}
         pageSize={paging.pageSize}
         onPageChange={paging.setPage}
+        onPageSizeChange={paging.setPageSize}
         isLoading={rows.isPending}
         error={rows.error}
         onRetry={() => rows.refetch()}

@@ -245,7 +245,6 @@ function EmployeeForm({ detail }: { detail: EmployeeDetail }) {
         back={{ to: '/hr/people', label: 'Back to Employees' }}
         breadcrumb={[{ label: 'People', to: '/hr/people' }, { label: fullName(e) }]}
         title={fullName(e)}
-        subtitle={e.department?.name ?? 'No department'}
         actions={!isMobile && actions}
       />
       {self && <Alert tone="warning"><span className="flex items-center gap-2"><Info className="size-4" aria-hidden />Another HR must change your own salary or leave limits.</span></Alert>}

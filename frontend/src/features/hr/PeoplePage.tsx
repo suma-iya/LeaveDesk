@@ -82,7 +82,6 @@ export function PeoplePage() {
     <>
       <PageHeader
         title="Employees"
-        subtitle="Click an employee to change their department, salary or leave limits."
         actions={<HeaderActions exportHref={api.hr.exportUrl(f)} />}
       />
       <DataTable
@@ -94,6 +93,7 @@ export function PeoplePage() {
         page={paging.page}
         pageSize={paging.pageSize}
         onPageChange={paging.setPage}
+        onPageSizeChange={paging.setPageSize}
         isLoading={rows.isPending}
         error={rows.error}
         onRetry={() => rows.refetch()}

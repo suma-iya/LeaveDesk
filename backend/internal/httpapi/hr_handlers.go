@@ -25,7 +25,7 @@ func (s *Server) employeeRows(r *http.Request, pageSize int) ([]employeeRowView,
 		pageSize = n
 	}
 	if pageSize == 0 {
-		pageSize = 8
+		pageSize = 10
 	}
 	rows, total, err := s.hr.Employees(r.Context(), q.Get("q"), dept, page, pageSize)
 	if err != nil {

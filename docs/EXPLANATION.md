@@ -78,7 +78,7 @@ migrations/             SQL files embedded in the binary, run with golang-migrat
 | `layouts/AppShell.tsx` | The 80px rail (bottom tab bar on mobile), amber "new" dots, and the account menu. |
 | `layouts/HeaderActions.tsx` + `features/calendar/*` | Request leave, the Calendar toggle and Export, plus the Team calendar overlay, whose open state is remembered for the session. |
 | `components/AppButton.tsx` | The only button: `labeled` (exactly 140×36 on desktop, full width at 44 or 48 on mobile and auth pages) or `icon` (36/44 square with aria-label and tooltip). Five variants. |
-| `components/DataTable.tsx` | The one table pattern: filter toolbar, server paging and "Showing 1–8 of 23". On mobile it switches to cards with a filter sheet and chips. |
+| `components/DataTable.tsx` | The one table pattern: filter toolbar, server paging with 10 / 20 / 40 rows per page and "Showing 1–10 of 23". On mobile it switches to cards with a filter sheet and chips. |
 | `features/employee/*` | My leave, History, the request form (month picker, type picker, summary, attachment) and request details (with the PDF preview). |
 | `features/hr/*` | Pending, Requests, Review, People, Employee details, and `decisions.ts` (Undo). |
 | `lib/leave.ts` | `workingDays`, `available`, `overlaps`: the same rules as Go, with the same test cases. |

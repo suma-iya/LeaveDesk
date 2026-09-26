@@ -72,7 +72,7 @@ export function ProfilePage() {
 
   return (
     <>
-      <PageHeader title="Profile" subtitle="Your own details. HR sets your department, salary and leave limits." actions={!isMobile && saveButton} />
+      <PageHeader title="Profile" actions={!isMobile && saveButton} />
       {save.error && <Alert tone="error">{save.error.message}</Alert>}
       <div className="grid items-start gap-5 lg:grid-cols-[1fr_400px]">
         <div className="flex flex-col gap-5">

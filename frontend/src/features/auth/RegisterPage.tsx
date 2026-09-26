@@ -57,7 +57,7 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Create an account" subtitle="You can request leave as soon as your account is created." wide>
+    <AuthLayout title="Create an account" wide>
       {bootstrap.data?.hasHR === false && (
         <Alert tone="warning" className="mb-5">
           No HR account exists yet. The first account created becomes HR.

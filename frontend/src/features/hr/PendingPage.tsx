@@ -21,10 +21,6 @@ export function PendingPage() {
   const paging = usePaging(key)
   const f: RequestFilters = { ...params, scope: 'all', status: ['pending'], page: paging.page, pageSize: paging.pageSize }
   const rows = useQuery({ queryKey: keys.requests(f), queryFn: () => api.requests.list(f), placeholderData: (p) => p })
-  const allPending = useQuery({
-    queryKey: keys.requests({ scope: 'all', status: ['pending'], pageSize: 1 }),
-    queryFn: () => api.requests.list({ scope: 'all', status: ['pending'], pageSize: 1 }),
-  })
   const held = useHeldDecisions()
   const [rejecting, setRejecting] = useState<LeaveRequest | null>(null)
 
@@ -37,13 +33,11 @@ export function PendingPage() {
   // Rows waiting out their Undo window are hidden until the decision is sent.
   const visible = rows.data?.items.filter((r) => !held.has(r.id))
   const hiddenHere = (rows.data?.items.length ?? 0) - (visible?.length ?? 0)
-  const count = Math.max(0, (allPending.data?.total ?? 0) - held.size)
 
   return (
     <>
       <PageHeader
         title="Pending requests"
-        subtitle={`${count} ${count === 1 ? 'request' : 'requests'} waiting for your decision. Your own requests go to another HR.`}
         actions={<HeaderActions exportHref={api.requests.exportUrl({ ...params, scope: 'all', status: ['pending'] })} />}
       />
       <DataTable
@@ -55,6 +49,7 @@ export function PendingPage() {
         page={paging.page}
         pageSize={paging.pageSize}
         onPageChange={paging.setPage}
+        onPageSizeChange={paging.setPageSize}
         isLoading={rows.isPending}
         error={rows.error}
         onRetry={() => rows.refetch()}

@@ -92,6 +92,9 @@ export interface RequestFilters {
   department?: number
   q?: string
   year?: number
+  /** Leave dates overlapping [from, to]. */
+  from?: string
+  to?: string
   page?: number
   pageSize?: number
 }

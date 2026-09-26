@@ -2,7 +2,7 @@ import type { Balance, Draft, LeaveRequest, Page, RequestFilters } from '@/types
 import { request, toQuery } from './http'
 
 const filterQuery = (f: RequestFilters) =>
-  toQuery({ scope: f.scope, status: f.status, type: f.type, department: f.department, q: f.q, year: f.year, page: f.page, pageSize: f.pageSize })
+  toQuery({ scope: f.scope, status: f.status, type: f.type, department: f.department, q: f.q, year: f.year, from: f.from, to: f.to, page: f.page, pageSize: f.pageSize })
 
 export const requestsApi = {
   list: (f: RequestFilters) => request<Page<LeaveRequest> & { pageSize: number }>(`/requests${filterQuery(f)}`),

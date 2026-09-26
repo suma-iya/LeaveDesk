@@ -24,3 +24,11 @@ func translate(err error, context string) error {
 	}
 	return fmt.Errorf("%s: %w", context, err)
 }
+
+var errNoRows = pgx.ErrNoRows
+
+// isInvalidUUID: a malformed id in the URL should be a 404, not a 500.
+func isInvalidUUID(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "22P02"
+}

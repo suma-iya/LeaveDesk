@@ -13,6 +13,7 @@ import (
 	"github.com/suma-iya/leavedesk/backend/internal/auth"
 	"github.com/suma-iya/leavedesk/backend/internal/config"
 	"github.com/suma-iya/leavedesk/backend/internal/domain"
+	"github.com/suma-iya/leavedesk/backend/internal/files"
 	"github.com/suma-iya/leavedesk/backend/internal/hr"
 	"github.com/suma-iya/leavedesk/backend/internal/leave"
 )
@@ -32,7 +33,10 @@ type Server struct {
 	accounts *account.Service
 	leave    *leave.Service
 	hr       *hr.Service
-	today    func() time.Time
+	files    *files.Service
+	// calendarStore is the extra query behind GET /api/calendar.
+	calendarStore leave.CalendarStore
+	today         func() time.Time
 }
 
 // Deps are the services the HTTP layer calls.
@@ -41,17 +45,21 @@ type Deps struct {
 	Accounts *account.Service
 	Leave    *leave.Service
 	HR       *hr.Service
+	Files    *files.Service
+	Calendar leave.CalendarStore
 }
 
 func NewServer(cfg *config.Config, d Deps) *Server {
 	s := &Server{
-		cfg:      cfg,
-		sessions: auth.NewSessions(cfg.JWTSecret, cfg.SessionTTL, cfg.CookieSecure),
-		users:    d.Users,
-		accounts: d.Accounts,
-		leave:    d.Leave,
-		hr:       d.HR,
-		today:    func() time.Time { return domain.DateOf(time.Now().In(cfg.Location)).Time },
+		cfg:           cfg,
+		sessions:      auth.NewSessions(cfg.JWTSecret, cfg.SessionTTL, cfg.CookieSecure),
+		users:         d.Users,
+		accounts:      d.Accounts,
+		leave:         d.Leave,
+		hr:            d.HR,
+		files:         d.Files,
+		calendarStore: d.Calendar,
+		today:         func() time.Time { return domain.DateOf(time.Now().In(cfg.Location)).Time },
 	}
 	if cfg.GoogleEnabled() {
 		s.google = auth.NewGoogle(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURL, cfg.AllowedEmailDomains)

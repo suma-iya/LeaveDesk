@@ -136,8 +136,8 @@ func (s *Server) updateMe(w http.ResponseWriter, r *http.Request, u *domain.User
 	if err := decode(r, &in); err != nil {
 		return err
 	}
-	updated, err := s.accounts.UpdateProfile(r.Context(), u, in, func(string) error {
-		return domain.Invalid("Photo uploads are not available yet.")
+	updated, err := s.accounts.UpdateProfile(r.Context(), u, in, func(fileID string) error {
+		return s.files.OwnedAvatar(r.Context(), u, fileID)
 	})
 	if err != nil {
 		return err

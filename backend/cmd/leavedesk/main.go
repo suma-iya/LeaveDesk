@@ -21,6 +21,7 @@ import (
 	"github.com/suma-iya/leavedesk/backend/internal/account"
 	"github.com/suma-iya/leavedesk/backend/internal/config"
 	"github.com/suma-iya/leavedesk/backend/internal/domain"
+	"github.com/suma-iya/leavedesk/backend/internal/files"
 	"github.com/suma-iya/leavedesk/backend/internal/hr"
 	"github.com/suma-iya/leavedesk/backend/internal/httpapi"
 	"github.com/suma-iya/leavedesk/backend/internal/leave"
@@ -122,6 +123,8 @@ func handler(cfg *config.Config, db *store.Store) http.Handler {
 		Accounts: accounts(cfg, db),
 		Leave:    leaves,
 		HR:       hr.NewService(db, leaves, today(cfg)),
+		Files:    files.NewService(db, cfg.UploadDir),
+		Calendar: db,
 	}).Handler()
 }
 

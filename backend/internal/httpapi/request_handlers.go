@@ -98,6 +98,9 @@ func (s *Server) listRequests(w http.ResponseWriter, r *http.Request, u *domain.
 
 // POST /api/requests
 func (s *Server) createRequest(w http.ResponseWriter, r *http.Request, u *domain.User) error {
+	if isMultipart(r) {
+		return s.createRequestMultipart(w, r, u)
+	}
 	var d leave.Draft
 	if err := decode(r, &d); err != nil {
 		return err

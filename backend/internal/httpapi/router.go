@@ -44,6 +44,11 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /api/hr/employees/{id}", s.hrOnly(s.employee))
 	mux.Handle("PATCH /api/hr/employees/{id}", s.hrOnly(s.updateEmployee))
 	mux.Handle("GET /api/departments", s.active(s.departments))
+
+	// Calendar and files
+	mux.Handle("GET /api/calendar", s.active(s.calendar))
+	mux.Handle("POST /api/files", s.active(s.uploadFile))
+	mux.Handle("GET /api/files/{id}", s.signedIn(s.getFile))
 	mux.Handle("POST /api/departments", s.hrOnly(s.createDepartment))
 
 	mux.Handle("/api/", s.public(func(w http.ResponseWriter, r *http.Request) error {

@@ -299,3 +299,27 @@ func (s *Store) UserTx(ctx context.Context, userID string, fn func(*Store) error
 	}
 	return tx.Commit(ctx)
 }
+
+// RequestsBetween feeds the calendar: approved (and optionally pending)
+// requests overlapping [from, to], with department/type filters.
+func (s *Store) RequestsBetween(ctx context.Context, from, to time.Time, f leave.CalendarFilter) ([]leave.Request, error) {
+	statuses := []string{"approved"}
+	if f.IncludePending {
+		statuses = append(statuses, "pending")
+	}
+	args := []any{statuses, from, to}
+	sql := requestSelect + ` WHERE r.status = ANY($1) AND r.end_date >= $2 AND r.start_date <= $3`
+	if f.DepartmentID != 0 {
+		args = append(args, f.DepartmentID)
+		sql += fmt.Sprintf(" AND u.department_id = $%d", len(args))
+	}
+	if f.Type != "" {
+		args = append(args, f.Type)
+		sql += fmt.Sprintf(" AND r.type = $%d", len(args))
+	}
+	rows, err := s.db.Query(ctx, sql+` ORDER BY r.status, u.first_name`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("calendar: %w", err)
+	}
+	return collectRequests(rows)
+}

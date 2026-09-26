@@ -209,7 +209,7 @@ func (s *Server) exportEmployees(w http.ResponseWriter, r *http.Request, _ *doma
 			joined = e.JoinedOn.String()
 		}
 		_ = out.Write([]string{e.FirstName + " " + e.LastName, e.Email, dept, strconv.Itoa(e.Age), joined,
-			strconv.Itoa(e.Yearly.Used), strconv.Itoa(e.Yearly.Limit), strconv.Itoa(e.Yearly.Limit - e.Yearly.Used - e.Yearly.Pending)})
+			strconv.Itoa(e.Yearly.Used), strconv.Itoa(e.Yearly.Limit), strconv.Itoa(e.Yearly.Limit - e.Yearly.Used)})
 	}
 	out.Flush()
 	return out.Error()

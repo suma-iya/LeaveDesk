@@ -4,7 +4,6 @@
 package leave
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/suma-iya/leavedesk/backend/internal/domain"
@@ -87,9 +86,6 @@ type Request struct {
 	DecidedBy  *Person   `json:"decidedBy"`
 	Attachment *FileMeta `json:"attachment"`
 }
-
-// Code is how people refer to a request: LV-2041.
-func (r *Request) Code() string { return fmt.Sprintf("LV-%d", r.ID) }
 
 // Year the request counts against: the year it starts in.
 func (r *Request) Year() int { return r.Start.Year() }

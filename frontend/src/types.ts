@@ -61,7 +61,6 @@ export interface FileMeta {
 
 export interface LeaveRequest {
   id: number
-  code: string // "LV-2041": only shown on detail pages
   type: LeaveType
   startDate: string
   endDate: string

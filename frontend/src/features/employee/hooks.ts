@@ -19,7 +19,7 @@ export function useCancelRequest() {
   const client = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => api.requests.cancel(id),
-    onSuccess: (r) => toast.success(`${r.code} cancelled`),
+    onSuccess: () => toast.success('Request cancelled'),
     onError: (error) => toast.error(error.message),
     onSettled: () => refreshLeaveData(client),
   })
@@ -30,7 +30,7 @@ export function useSaveRequest(editId?: number) {
   const client = useQueryClient()
   return useMutation({
     mutationFn: (draft: Draft) => (editId ? api.requests.update(editId, draft) : api.requests.create(draft)),
-    onSuccess: (r) => toast.success(editId ? `${r.code} updated` : `Leave request ${r.code} submitted`),
+    onSuccess: () => toast.success(editId ? 'Request updated' : 'Leave request submitted'),
     onSettled: () => refreshLeaveData(client),
   })
 }

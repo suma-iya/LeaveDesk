@@ -9,18 +9,17 @@ import (
 	"github.com/suma-iya/leavedesk/backend/internal/leave"
 )
 
-// requestView adds the display code (LV-2041) and, in HR lists, the
-// requester's yearly totals for the balance bar.
+// requestView adds, in HR lists, the requester's yearly totals for the
+// balance bar. The request id is only used in URLs, never shown to people.
 type requestView struct {
 	*leave.Request
-	Code   string           `json:"code"`
 	Yearly *leave.YearTotal `json:"yearly,omitempty"`
 }
 
-func viewRequest(r *leave.Request) requestView { return requestView{Request: r, Code: r.Code()} }
+func viewRequest(r *leave.Request) requestView { return requestView{Request: r} }
 
 func requestID(r *http.Request) (int64, error) {
-	id, err := strconv.ParseInt(strings.TrimPrefix(strings.ToUpper(pathID(r)), "LV-"), 10, 64)
+	id, err := strconv.ParseInt(pathID(r), 10, 64)
 	if err != nil || id <= 0 {
 		return 0, domain.NotFound("Request not found.")
 	}

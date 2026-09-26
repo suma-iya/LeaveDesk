@@ -108,7 +108,7 @@ Here is `POST /api/requests`, an employee applying for leave:
 1. **Handler.** It decodes JSON with a 1 MB limit and unknown fields rejected. For `multipart/form-data`, it first saves the `attachment` through `files.Save`. The requester is always the signed-in user, never taken from the body.
 2. **Service.** `leave.Service.Create` calls `store.InUserLock`: a transaction holding `pg_advisory_xact_lock(hashtext('leavedesk:user:'||id))`. Inside the lock it loads the user's pending and approved requests and the balance for the start date's year, then runs `leave.Validate`.
 3. **Store.** It runs `INSERT … RETURNING id`, then reloads the row joined with the requester, department, decider and file metadata.
-4. The handler returns `201` with the request, including `"code": "LV-2052"`.
+4. The handler returns `201` with the new request. Its numeric id is used only in URLs and API paths; it is never shown in the UI, and error messages refer to requests by their dates.
 
 A second submission from the same person waits for the first to commit, then sees it in the overlap and balance check. In a test, eight identical simultaneous submissions produced exactly one success.
 
@@ -150,7 +150,7 @@ When editing, the request's own days are given back before the check. HR's table
 3. start ≤ end.
 4. There is at least one working day: *"Pick at least one working day. Fridays and Saturdays are weekends."*
 5. The reason is at most 1000 characters.
-6. There is no overlap with your own pending or approved request: *"These dates overlap your pending request LV-2041 (04–08 Oct 2026)."*
+6. There is no overlap with your own pending or approved request: *"These dates overlap your pending request (04–08 Oct 2026)."*
 7. There is enough balance: *"Not enough Annual leave: 6 days available, 9 requested."* ("1 day" in the singular.)
 
 ### Decisions and the self-approval rule
@@ -174,7 +174,7 @@ Registration runs in a transaction holding `pg_advisory_xact_lock(hashtext('leav
 The migrations are `backend/migrations/0001_init.up.sql` and `0002_no_account_approval.up.sql`:
 
 - **`users`**: uuid ids, `citext` email (so it is case-insensitive and unique), a role check. There is no stored age; age is computed from `date_of_birth`.
-- **`leave_requests`**: `CHECK (end_date >= start_date)` and `working_days ≥ 1`. The id sequence starts at 1000 (LV-1000). Indexes on `(user_id, status)` and `(start_date, end_date)`.
+- **`leave_requests`**: `CHECK (end_date >= start_date)` and `working_days ≥ 1`. The id sequence starts at 1000; ids are internal and never shown to people. Indexes on `(user_id, status)` and `(start_date, end_date)`.
 - **`leave_limits`**: primary key `(user, year, type)`. A missing row means "use the policy default".
 - **`salaries`**: append-only history with `effective_from`.
 - **`files`** and **`audit_log`**.

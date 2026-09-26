@@ -15,7 +15,7 @@ export function CancelDialog({ request, onClose, onConfirm, busy }: {
         <DialogHeader>
           <DialogTitle>Cancel this request?</DialogTitle>
           <DialogDescription>
-            {request && `${request.code}: ${TYPE_LABEL[request.type]} leave, ${formatRange(request.startDate, request.endDate)}. HR will no longer see it.`}
+            {request && `${TYPE_LABEL[request.type]} leave, ${formatRange(request.startDate, request.endDate)}. HR will no longer see it.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">

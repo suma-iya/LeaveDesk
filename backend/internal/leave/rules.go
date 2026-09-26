@@ -47,8 +47,8 @@ func Validate(d Draft, own []Request, balances []Balance) (workingDays int, err 
 	}
 	for _, r := range own {
 		if Overlaps(start, end, r.Start.Time, r.End.Time) {
-			return 0, domain.Conflict("OVERLAP", "These dates overlap your %s request %s (%s).",
-				r.Status, r.Code(), FormatRange(r.Start.Time, r.End.Time))
+			return 0, domain.Conflict("OVERLAP", "These dates overlap your %s request (%s).",
+				r.Status, FormatRange(r.Start.Time, r.End.Time))
 		}
 	}
 	if b := find(balances, d.Type); workingDays > b.Available {
@@ -67,7 +67,7 @@ func CanDecide(decider *domain.User, r *Request) error {
 		return domain.Forbidden("SELF_APPROVAL", "You can't decide your own request. Another HR must decide it.")
 	}
 	if r.Status != Pending {
-		return domain.Conflict("NOT_PENDING", "%s is already %s.", r.Code(), r.Status)
+		return domain.Conflict("NOT_PENDING", "This request is already %s.", r.Status)
 	}
 	return nil
 }

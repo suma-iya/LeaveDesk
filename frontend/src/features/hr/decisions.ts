@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/api'
 import { refreshLeaveData } from '@/api/queries'
+import { formatRange } from '@/lib/dates'
 import { fullName } from '@/lib/format'
 import type { LeaveRequest } from '@/types'
 
@@ -33,7 +34,7 @@ async function send(item: Held, client: QueryClient, keepalive = false) {
   try {
     await api.requests.decide(item.request.id, item.status, item.note, keepalive)
   } catch (error) {
-    toast.error(`${item.request.code}: ${(error as Error).message}`)
+    toast.error(`${fullName(item.request.employee)}: ${(error as Error).message}`)
   } finally {
     held.delete(item.request.id)
     changed()
@@ -45,7 +46,7 @@ export function decideWithUndo(client: QueryClient, request: LeaveRequest, statu
   const item: Held = { request, status, note, timer: setTimeout(() => void send(item, client), UNDO_MS) }
   held.set(request.id, item)
   changed()
-  toast.success(`${status === 'approved' ? 'Approved' : 'Rejected'} ${fullName(request.employee)}’s leave (${request.code})`, {
+  toast.success(`${status === 'approved' ? 'Approved' : 'Rejected'} ${fullName(request.employee)}’s leave (${formatRange(request.startDate, request.endDate)})`, {
     duration: UNDO_MS,
     action: {
       label: 'Undo',

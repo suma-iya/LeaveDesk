@@ -174,7 +174,7 @@ func (s *Service) Update(ctx context.Context, u *domain.User, id int64, d Draft)
 		}
 		ok, err := tx.UpdatePendingRequest(ctx, id, d, days)
 		if err == nil && !ok {
-			return domain.Conflict("NOT_PENDING", "%s was decided in the meantime.", current.Code())
+			return domain.Conflict("NOT_PENDING", "This request was decided in the meantime.")
 		}
 		return err
 	})
@@ -244,7 +244,7 @@ func (s *Service) Cancel(ctx context.Context, u *domain.User, id int64) (*Reques
 	}
 	if ok, err := s.store.SetStatus(ctx, id, Pending, Cancelled, nil, nil); err != nil || !ok {
 		if err == nil {
-			err = domain.Conflict("NOT_PENDING", "%s was decided in the meantime.", r.Code())
+			err = domain.Conflict("NOT_PENDING", "This request was decided in the meantime.")
 		}
 		return nil, err
 	}
@@ -282,7 +282,7 @@ func (s *Service) Decide(ctx context.Context, hr *domain.User, id int64, d Decis
 		return nil, err
 	}
 	if !ok {
-		return nil, domain.Conflict("NOT_PENDING", "%s was decided by someone else a moment ago.", r.Code())
+		return nil, domain.Conflict("NOT_PENDING", "Someone else decided this request a moment ago.")
 	}
 	return s.store.RequestByID(ctx, id)
 }

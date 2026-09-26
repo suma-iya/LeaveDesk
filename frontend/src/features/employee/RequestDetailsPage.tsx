@@ -70,7 +70,7 @@ export function RequestDetailsPage() {
         <div className="flex items-start justify-between gap-3">
           <IconButton icon={ArrowLeft} label={`Back to ${list.label}`} to={list.to} variant="secondary" />
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] text-muted-foreground">{r.code} · {TYPE_LABEL[r.type]} leave</p>
+            <p className="text-[13px] text-muted-foreground">{TYPE_LABEL[r.type]} leave</p>
             <h1 className="text-[22px] font-bold tracking-[-0.02em]">{range}</h1>
           </div>
           <StatusBadge status={r.status} className="mt-1" />
@@ -127,7 +127,7 @@ export function RequestDetailsPage() {
     <>
       <PageHeader
         back={{ to: list.to, label: `Back to ${list.label}` }}
-        breadcrumb={[{ label: list.label, to: list.to }, { label: `Request ${r.code}` }]}
+        breadcrumb={[{ label: list.label, to: list.to }, { label: 'Request details' }]}
         title={`${TYPE_LABEL[r.type]} leave, ${range}`}
       />
       <div className="flex items-start gap-5">

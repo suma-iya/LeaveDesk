@@ -82,9 +82,9 @@ func TestValidate(t *testing.T) {
 		{name: "valid annual", draft: Draft{Type: Annual, StartDate: dp("2026-10-18"), EndDate: dp("2026-10-20")}, wantDays: 3},
 		{name: "exactly all that's left", draft: Draft{Type: Annual, StartDate: dp("2026-10-18"), EndDate: dp("2026-10-25")}, wantDays: 6},
 		{name: "overlap with own pending", draft: Draft{Type: Annual, StartDate: dp("2026-10-06"), EndDate: dp("2026-10-07")},
-			wantMsg: "These dates overlap your pending request LV-2041 (04–08 Oct 2026)."},
+			wantMsg: "These dates overlap your pending request (04–08 Oct 2026)."},
 		{name: "touching the last day overlaps", draft: Draft{Type: Annual, StartDate: dp("2026-10-08"), EndDate: dp("2026-10-11")},
-			wantMsg: "These dates overlap your pending request LV-2041 (04–08 Oct 2026)."},
+			wantMsg: "These dates overlap your pending request (04–08 Oct 2026)."},
 		{name: "not enough annual", draft: Draft{Type: Annual, StartDate: dp("2026-10-18"), EndDate: dp("2026-10-28")},
 			wantMsg: "Not enough Annual leave: 6 days available, 9 requested."},
 		{name: "singular day", draft: Draft{Type: Casual, StartDate: dp("2026-10-18"), EndDate: dp("2026-10-19")},
@@ -99,7 +99,7 @@ func TestValidate(t *testing.T) {
 		{name: "bad type", draft: Draft{Type: "holiday", StartDate: dp("2026-10-18"), EndDate: dp("2026-10-18")},
 			wantMsg: "Choose a leave type: annual, casual or sick."},
 		{name: "overlap is checked before balance", draft: Draft{Type: Sick, StartDate: dp("2026-10-05"), EndDate: dp("2026-10-05")},
-			wantMsg: "These dates overlap your pending request LV-2041 (04–08 Oct 2026)."},
+			wantMsg: "These dates overlap your pending request (04–08 Oct 2026)."},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

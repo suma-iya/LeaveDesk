@@ -98,7 +98,7 @@ function RequestForm({ editing, copyFrom }: { editing?: LeaveRequest; copyFrom?:
   if (start && end) {
     const clash = others.find((r) => overlaps(r, { startDate: start, endDate: end }))
     if (days === 0) errors.push('Pick at least one working day. Fridays and Saturdays are weekends.')
-    else if (clash) errors.push(`These dates overlap your ${clash.status} request ${clash.code} (${formatRange(clash.startDate, clash.endDate)}).`)
+    else if (clash) errors.push(`These dates overlap your ${clash.status} request (${formatRange(clash.startDate, clash.endDate)}).`)
     else if (balances && days > availableNow) errors.push(`Not enough ${TYPE_LABEL[type]} leave: ${pluralDays(Math.max(availableNow, 0))} available, ${days} requested.`)
   }
   const serverError = save.error?.message
@@ -152,7 +152,7 @@ function RequestForm({ editing, copyFrom }: { editing?: LeaveRequest; copyFrom?:
         back={{ to: backTo, label: 'Back' }}
         breadcrumb={[
           user.role === 'hr' ? { label: 'All', to: home } : { label: 'My leave', to: '/me' },
-          { label: editing ? `Edit ${editing.code}` : 'New request' },
+          { label: editing ? 'Edit request' : 'New request' },
         ]}
         title={editing ? 'Edit request' : 'Request leave'}
       />

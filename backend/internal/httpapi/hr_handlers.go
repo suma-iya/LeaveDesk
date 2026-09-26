@@ -134,7 +134,7 @@ func (s *Server) exportRequests(w http.ResponseWriter, r *http.Request, u *domai
 		}
 	}
 	out := startCSV(w, "leave-requests")
-	_ = out.Write([]string{"Request", "Employee", "Department", "Type", "From", "To", "Working days", "Status", "Submitted", "Decided by", "Decided on", "Note"})
+	_ = out.Write([]string{"Employee", "Department", "Type", "From", "To", "Working days", "Status", "Submitted", "Decided by", "Decided on", "Note"})
 	for _, q := range all {
 		dept, decider, decided := "", "", ""
 		if q.Employee.Department != nil {
@@ -146,7 +146,7 @@ func (s *Server) exportRequests(w http.ResponseWriter, r *http.Request, u *domai
 		if q.DecidedAt != nil {
 			decided = q.DecidedAt.In(s.cfg.Location).Format(time.DateOnly)
 		}
-		_ = out.Write([]string{q.Code(), q.Employee.FirstName + " " + q.Employee.LastName, dept, q.Type.Label(),
+		_ = out.Write([]string{q.Employee.FirstName + " " + q.Employee.LastName, dept, q.Type.Label(),
 			q.Start.String(), q.End.String(), strconv.Itoa(q.WorkingDays), string(q.Status),
 			q.SubmittedAt.In(s.cfg.Location).Format(time.DateOnly), decider, decided, q.DecisionNote})
 	}

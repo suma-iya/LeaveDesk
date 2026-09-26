@@ -27,7 +27,7 @@ function RejectForm({ request, onCancel, onConfirm }: { request: LeaveRequest; o
     <form onSubmit={(e) => { e.preventDefault(); onConfirm(note) }} className="flex flex-col gap-4">
       <DialogHeader>
         <DialogTitle>Reject this request?</DialogTitle>
-        <DialogDescription>{fullName(request.employee)} · {formatRange(request.startDate, request.endDate)} · {request.code}</DialogDescription>
+        <DialogDescription>{fullName(request.employee)} · {formatRange(request.startDate, request.endDate)}</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="reject-note">Note (optional)</Label>

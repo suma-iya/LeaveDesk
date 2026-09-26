@@ -119,7 +119,7 @@ Browser ──► nginx  (frontend container, published as :3000)
                         PostgreSQL (db, volume pgdata)   files on volume uploads (/data/uploads)
 ```
 
-**A request's journey**, using HR approving LV-2041:
+**A request's journey**, using HR approving Nusrat's request (id 2041). Request ids appear only in URLs, never on screen:
 
 1. The browser sends `POST /api/requests/2041/decision` with the `ld_session` cookie. JavaScript never sees the token.
 2. nginx forwards the request to `backend:8080`.

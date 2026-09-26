@@ -220,7 +220,7 @@ function EmployeeForm({ detail }: { detail: EmployeeDetail }) {
           <li key={r.id} className="flex items-center justify-between gap-2 px-3 py-2 text-[13.5px]">
             <span className="min-w-0">
               <span className="block truncate font-medium">{TYPE_LABEL[r.type]} · {formatRange(r.startDate, r.endDate)}</span>
-              <span className="text-xs text-muted-foreground">{r.code} · {r.workingDays} working {r.workingDays === 1 ? 'day' : 'days'}</span>
+              <span className="text-xs text-muted-foreground">{r.workingDays} working {r.workingDays === 1 ? 'day' : 'days'}</span>
             </span>
             <StatusBadge status={r.status} />
           </li>

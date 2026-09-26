@@ -212,7 +212,7 @@ func Run(ctx context.Context, pool *pgxpool.Pool, uploadDir string, loc *time.Lo
 			r.id, userIDs[r.who], r.kind, r.start, r.end, leave.WorkingDays(start, end), r.reason, attachment,
 			r.status, r.submitted+" 10:00", decidedAt, decidedBy, note, loc.String())
 		if err != nil {
-			return fmt.Errorf("insert request LV-%d: %w", r.id, err)
+			return fmt.Errorf("insert request %d: %w", r.id, err)
 		}
 	}
 	// New requests continue after the highest seeded id.

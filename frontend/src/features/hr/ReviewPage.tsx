@@ -142,7 +142,7 @@ export function ReviewPage() {
     <>
       <PageHeader
         back={{ to: list.to, label: `Back to ${list.label}` }}
-        breadcrumb={[{ label: list.label, to: list.to }, { label: `Request ${r.code}` }]}
+        breadcrumb={[{ label: list.label, to: list.to }, { label: fullName(r.employee) }]}
         title="Leave application"
         titleAside={<StatusBadge status={r.status} />}
       />

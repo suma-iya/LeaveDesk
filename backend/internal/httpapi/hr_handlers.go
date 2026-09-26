@@ -133,8 +133,10 @@ func (s *Server) exportRequests(w http.ResponseWriter, r *http.Request, u *domai
 			break
 		}
 	}
-	out := startCSV(w, "leave-requests")
-	_ = out.Write([]string{"Employee", "Department", "Type", "From", "To", "Working days", "Status", "Submitted", "Decided by", "Decided on", "Note"})
+	// Build every cell, then drop columns that are empty in every row
+	// (e.g. "Decided by" and "Note" when exporting pending requests).
+	header := []string{"Employee", "Department", "Type", "From", "To", "Working days", "Status", "Submitted", "Decided by", "Decided on", "Note"}
+	rows := make([][]string, 0, len(all))
 	for _, q := range all {
 		dept, decider, decided := "", "", ""
 		if q.Employee.Department != nil {
@@ -146,9 +148,15 @@ func (s *Server) exportRequests(w http.ResponseWriter, r *http.Request, u *domai
 		if q.DecidedAt != nil {
 			decided = q.DecidedAt.In(s.cfg.Location).Format(time.DateOnly)
 		}
-		_ = out.Write([]string{q.Employee.FirstName + " " + q.Employee.LastName, dept, q.Type.Label(),
+		rows = append(rows, []string{q.Employee.FirstName + " " + q.Employee.LastName, dept, q.Type.Label(),
 			q.Start.String(), q.End.String(), strconv.Itoa(q.WorkingDays), string(q.Status),
 			q.SubmittedAt.In(s.cfg.Location).Format(time.DateOnly), decider, decided, q.DecisionNote})
+	}
+	keep := nonEmptyColumns(len(header), rows, 8) // the first 8 columns always stay
+	out := startCSV(w, "leave-requests")
+	_ = out.Write(pick(header, keep))
+	for _, row := range rows {
+		_ = out.Write(pick(row, keep))
 	}
 	out.Flush()
 	return out.Error()
@@ -175,4 +183,31 @@ func (s *Server) exportEmployees(w http.ResponseWriter, r *http.Request, _ *doma
 	}
 	out.Flush()
 	return out.Error()
+}
+
+// nonEmptyColumns returns the indexes to export: the first `always` columns,
+// plus any later column that has a value in at least one row.
+func nonEmptyColumns(width int, rows [][]string, always int) []int {
+	var keep []int
+	for c := 0; c < width; c++ {
+		used := c < always
+		for _, row := range rows {
+			if used {
+				break
+			}
+			used = row[c] != ""
+		}
+		if used {
+			keep = append(keep, c)
+		}
+	}
+	return keep
+}
+
+func pick(row []string, keep []int) []string {
+	out := make([]string, len(keep))
+	for i, c := range keep {
+		out[i] = row[c]
+	}
+	return out
 }

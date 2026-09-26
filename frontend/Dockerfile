@@ -7,10 +7,6 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-# true = serve the in-memory mock API (default until the Go endpoints exist);
-# false = call the real backend through nginx's /api proxy.
-ARG VITE_USE_MOCK=true
-ENV VITE_USE_MOCK=$VITE_USE_MOCK
 RUN npm run build
 
 # ---- Serve stage: nginx serves dist/ and proxies /api to the backend ----

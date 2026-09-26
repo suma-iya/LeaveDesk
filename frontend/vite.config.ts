@@ -9,7 +9,8 @@ export default defineConfig({
     alias: { '@': path.resolve(import.meta.dirname, './src') },
   },
   // In `npm run dev`, forward /api to the Go server, as nginx does in Docker.
+  // API_PROXY=http://localhost:3000 uses the docker-compose stack instead.
   server: {
-    proxy: { '/api': 'http://localhost:8080' },
+    proxy: { '/api': process.env.API_PROXY ?? 'http://localhost:8080' },
   },
 })

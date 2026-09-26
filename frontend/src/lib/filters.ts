@@ -1,7 +1,9 @@
 /** Value of the "All …" option in filter selects. */
 export const ALL = 'all'
 
-export const optionsFrom = (allLabel: string, values: string[]) => [
+type Option = { value: string; label: string }
+
+export const optionsFrom = (allLabel: string, values: (string | Option)[]): Option[] => [
   { value: ALL, label: allLabel },
-  ...values.map((v) => ({ value: v, label: v })),
+  ...values.map((v) => (typeof v === 'string' ? { value: v, label: v } : v)),
 ]

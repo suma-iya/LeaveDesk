@@ -123,7 +123,7 @@ Services return a `*domain.Error{Status, Code, Message}`, and `fail()` writes it
 | 401 | `UNAUTHENTICATED` (no cookie, bad signature, expired, wrong password) |
 | 403 | `FORBIDDEN`, `SELF_APPROVAL`, `SELF_EDIT` |
 | 404 | `NOT_FOUND`. This includes someone else's request, so ids can't be probed |
-| 409 | `OVERLAP`, `NOT_PENDING`, `EMAIL_TAKEN`, `DEPARTMENT_EXISTS`, `GOOGLE_LINKED` |
+| 409 | `OVERLAP`, `NOT_PENDING`, `EMAIL_TAKEN`, `DEPARTMENT_EXISTS`, `GOOGLE_LINKED`, `LAST_HR` |
 
 ## 4. Business rules in detail
 
@@ -161,6 +161,10 @@ When editing, the request's own days are given back before the check. HR's table
 ### First account becomes HR
 
 Registration runs in a transaction holding `pg_advisory_xact_lock(hashtext('leavedesk:first-hr'))`. It checks whether any HR exists and calls `InitialRole(hasHR)`: with no HR the new account becomes HR, otherwise an employee. Either way the account works immediately (there is no approval step), `joined_on` is the sign-up day, and the browser goes to that role's home page: HR to Pending, employees to My leave. Two simultaneous first registrations cannot both become HR. A new employee has no department until HR sets one on the People page. The `demote` CLI takes the same lock and refuses to remove the last HR. Migration `0002` removed the old `status` column; anyone who was still pending was activated.
+
+### The Human Resources department is HR
+
+`domain.IsHRDepartment` treats a department named "Human Resources" or "HR" (any case) as HR. In `hr.Service.Update`, moving someone into it sets `role = hr`; moving them out of it sets `role = employee`. The change runs in the same locked transaction as the department change, also takes the first-HR advisory lock, and refuses (`409 LAST_HR`) to demote the last HR. Both changes write audit rows. HR accounts outside that department (the first account, or one promoted with the CLI) keep their role when moved between other departments. The middleware reloads the user on every request, so the new role applies at once. Migration `0003` promoted everyone who was already in Human Resources.
 
 ### HR changes and the audit log
 
@@ -229,7 +233,7 @@ Known limitations:
 
 - There are no email notifications.
 - There is no deactivation or offboarding.
-- HR promotion is CLI-only.
+- HR access follows the Human Resources department; otherwise promotion is CLI-only.
 - There is a single approval step.
 - There is no password reset (see the README).
 - A request crossing New Year counts against its start year.

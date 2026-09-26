@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type Role string
 
@@ -28,6 +31,17 @@ type User struct {
 
 	PasswordHash *string `json:"-"`
 	GoogleSub    *string `json:"-"`
+}
+
+// IsHRDepartment reports whether a department is Human Resources. Its
+// members are HR: moving someone in makes them HR, moving them out makes
+// them an employee again.
+func IsHRDepartment(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "human resources", "hr":
+		return true
+	}
+	return false
 }
 
 func (u *User) FullName() string { return u.FirstName + " " + u.LastName }

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Camera, Save } from 'lucide-react'
 import { toast } from 'sonner'
@@ -23,13 +23,18 @@ export function ProfilePage() {
   const user = useUser()
   const client = useQueryClient()
   const isMobile = useIsMobile()
-  const photo = useRef<HTMLInputElement>(null)
+  const photoInput = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({ firstName: user.firstName, lastName: user.lastName, dateOfBirth: user.dateOfBirth })
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' })
+  // A picked photo is only previewed; it is uploaded on Save, like the other fields.
+  const [photo, setPhoto] = useState<File | null>(null)
   const [photoError, setPhotoError] = useState<string | null>(null)
+  const photoPreview = useMemo(() => (photo ? URL.createObjectURL(photo) : undefined), [photo])
+  useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview) }, [photoPreview])
   const refreshMe = () => client.invalidateQueries({ queryKey: keys.me })
 
-  const profileDirty = form.firstName !== user.firstName || form.lastName !== user.lastName || form.dateOfBirth !== user.dateOfBirth
+  const detailsDirty = form.firstName !== user.firstName || form.lastName !== user.lastName || form.dateOfBirth !== user.dateOfBirth
+  const profileDirty = detailsDirty || photo !== null
   const pwDirty = Boolean(pw.current || pw.next || pw.confirm)
   const pwError = !pwDirty ? '' : pw.next.length < 8 ? 'Use at least 8 characters for the new password.'
     : pw.next !== pw.confirm ? 'The new passwords do not match.' : ''
@@ -37,30 +42,26 @@ export function ProfilePage() {
 
   const save = useMutation({
     mutationFn: async () => {
-      if (profileDirty) await api.me.updateProfile(form)
+      if (profileDirty) {
+        const avatarFileId = photo ? (await api.files.upload('avatar', photo)).id : undefined
+        await api.me.updateProfile({ ...form, avatarFileId })
+      }
       if (pwDirty) await api.me.changePassword(pw.current, pw.next, pw.confirm)
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success(pwDirty ? 'Profile and password saved' : 'Profile saved')
       setPw({ current: '', next: '', confirm: '' })
-      return refreshMe()
+      await refreshMe()
+      setPhoto(null)
     },
   })
 
-  const upload = useMutation({
-    mutationFn: async (file: File) => {
-      const f = await api.files.upload('avatar', file)
-      return api.me.updateProfile({ ...form, firstName: user.firstName, lastName: user.lastName, dateOfBirth: user.dateOfBirth, avatarFileId: f.id })
-    },
-    onSuccess: () => { toast.success('Photo updated'); return refreshMe() },
-    onError: (e) => setPhotoError(e.message),
-  })
   const pickPhoto = (file?: File) => {
     if (!file) return
     if (!['image/jpeg', 'image/png'].includes(file.type)) return setPhotoError('Use a JPG or PNG photo.')
     if (file.size > 2 * 1024 * 1024) return setPhotoError('The photo must be 2 MB or smaller.')
     setPhotoError(null)
-    upload.mutate(file)
+    setPhoto(file)
   }
 
   const saveButton = (
@@ -76,10 +77,10 @@ export function ProfilePage() {
         <div className="flex flex-col gap-5">
           <Card className="flex items-center gap-5 p-5">
             <div className="relative shrink-0">
-              <Avatar name={fullName(user)} src={user.avatarUrl} size={88} />
-              <IconButton icon={Camera} label="Change photo" variant="secondary" loading={upload.isPending}
-                className="absolute -right-1 -bottom-1 rounded-full" onClick={() => photo.current?.click()} />
-              <input ref={photo} type="file" accept="image/jpeg,image/png" className="sr-only" tabIndex={-1} aria-hidden
+              <Avatar name={fullName(user)} src={photoPreview ?? user.avatarUrl} size={88} />
+              <IconButton icon={Camera} label="Change photo" variant="secondary" disabled={save.isPending}
+                className="absolute -right-1 -bottom-1 rounded-full" onClick={() => photoInput.current?.click()} />
+              <input ref={photoInput} type="file" accept="image/jpeg,image/png" className="sr-only" tabIndex={-1} aria-hidden
                 onChange={(e) => { pickPhoto(e.target.files?.[0]); e.target.value = '' }} />
             </div>
             <div className="min-w-0">

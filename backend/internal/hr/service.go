@@ -30,6 +30,11 @@ type Store interface {
 	CreateDepartment(ctx context.Context, name string) (*domain.Department, error)
 	ActiveUsers(ctx context.Context, q string, departmentID, page, pageSize int) ([]domain.User, int, error)
 	SetDepartment(ctx context.Context, userID string, departmentID int) error
+	// LockRoles takes the lock registration and promote/demote use, so the
+	// HR count can't change between HRCount and SetUserRole.
+	LockRoles(ctx context.Context) error
+	HRCount(ctx context.Context) (int, error)
+	SetUserRole(ctx context.Context, userID string, role domain.Role) error
 	SalaryHistory(ctx context.Context, userID string) ([]Salary, error)
 	AddSalary(ctx context.Context, userID string, monthly int64, from domain.Date, actorID string) error
 	SetLimits(ctx context.Context, userID string, year int, limits map[leave.Type]int) error
@@ -136,8 +141,9 @@ func (s *Service) user(ctx context.Context, id string) (*domain.User, error) {
 }
 
 // Change is PATCH /hr/employees/{id}. Only department, salary and this
-// year's leave limits can change; name, email, date of birth, password,
-// role and joining date are never editable by HR.
+// year's leave limits can change; name, email, date of birth, password and
+// joining date are never editable by HR. The role follows the department:
+// see domain.IsHRDepartment.
 type Change struct {
 	DepartmentID *int `json:"departmentId"`
 	Salary       *struct {
@@ -188,6 +194,13 @@ func (s *Service) Update(ctx context.Context, actor *domain.User, id string, c C
 				old = u.Department.Name
 			}
 			audit = append(audit, AuditEntry{actor.ID, id, "department", old, dept.Name})
+			entry, err := s.roleForDepartment(ctx, tx, actor, u, dept)
+			if err != nil {
+				return err
+			}
+			if entry != nil {
+				audit = append(audit, *entry)
+			}
 		}
 		if c.Salary != nil {
 			history, err := tx.SalaryHistory(ctx, id)
@@ -214,6 +227,39 @@ func (s *Service) Update(ctx context.Context, actor *domain.User, id string, c C
 		}
 		return tx.Audit(ctx, audit)
 	})
+}
+
+// roleForDepartment applies the department rule after u moves to dept:
+// into Human Resources makes them HR; out of it makes them an employee,
+// unless they are the last HR. HR accounts outside that department (the
+// first account, or one promoted with the CLI) keep their role.
+func (s *Service) roleForDepartment(ctx context.Context, tx Store, actor, u *domain.User, dept *domain.Department) (*AuditEntry, error) {
+	role := u.Role
+	switch {
+	case domain.IsHRDepartment(dept.Name):
+		role = domain.RoleHR
+	case u.Department != nil && domain.IsHRDepartment(u.Department.Name):
+		role = domain.RoleEmployee
+	}
+	if role == u.Role {
+		return nil, nil
+	}
+	if err := tx.LockRoles(ctx); err != nil {
+		return nil, err
+	}
+	if role == domain.RoleEmployee {
+		count, err := tx.HRCount(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if count <= 1 {
+			return nil, domain.Conflict("LAST_HR", "%s is the only HR. Move someone else into %s first.", u.FullName(), u.Department.Name)
+		}
+	}
+	if err := tx.SetUserRole(ctx, u.ID, role); err != nil {
+		return nil, err
+	}
+	return &AuditEntry{actor.ID, u.ID, "role", string(u.Role), string(role)}, nil
 }
 
 // applyLimits enforces the floor (never below used + pending) inside the

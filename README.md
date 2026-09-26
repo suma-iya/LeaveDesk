@@ -80,7 +80,7 @@ This is the same as `docker compose exec backend /app/leavedesk seed --reset`. E
 
 The seed also creates 12 more employees in 7 departments. The week of 04–08 Oct 2026 is busy.
 
-**Promoting someone to HR.** This is not in the UI by design:
+**Who is HR.** Everyone in the **Human Resources** department (or one named "HR") is HR and sees the HR dashboard. When HR moves someone into that department on the People page, they become HR on their next request; moving them out makes them an employee again. The last HR can't be moved out. The first account and anyone promoted from the command line stay HR in any department:
 
 ```bash
 docker compose exec backend /app/leavedesk promote --email someone@company.test
@@ -194,7 +194,7 @@ nginx allows 6 MB request bodies for 5 MB attachments. It re-resolves `backend` 
 
 - There are no email notifications; people check the app for decisions.
 - There is no deactivation or offboarding flow, and there is no approval step for new accounts: anyone who can reach the sign-up page can create an employee account. Set `ALLOWED_EMAIL_DOMAINS` to restrict sign-ups to the company's email domain.
-- HR promotion and demotion are CLI-only.
+- HR access follows the Human Resources department (or the CLI); there is no separate role switch in the UI.
 - There is a single approval step (employee → HR) with no team-lead step. With only one HR account, HR's own requests can't be decided until a second HR exists.
 - There is no password reset. By design HR cannot change passwords, so a forgotten password needs a database operator. That is a gap to close before production.
 - A request that crosses New Year counts entirely against the year it starts in.

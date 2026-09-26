@@ -85,6 +85,22 @@ func (s *Store) SetDepartment(ctx context.Context, userID string, departmentID i
 	return translate(err, "set department")
 }
 
+func (s *Store) LockRoles(ctx context.Context) error {
+	_, err := s.db.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('leavedesk:first-hr'))`)
+	return translate(err, "lock roles")
+}
+
+func (s *Store) HRCount(ctx context.Context) (int, error) {
+	var n int
+	err := s.db.QueryRow(ctx, `SELECT count(*) FROM users WHERE role = 'hr'`).Scan(&n)
+	return n, translate(err, "count hr")
+}
+
+func (s *Store) SetUserRole(ctx context.Context, userID string, role domain.Role) error {
+	_, err := s.db.Exec(ctx, `UPDATE users SET role = $1 WHERE id = $2`, role, userID)
+	return translate(err, "set role")
+}
+
 // SalaryHistory is newest first; the first row is the current salary.
 func (s *Store) SalaryHistory(ctx context.Context, userID string) ([]hr.Salary, error) {
 	rows, err := s.db.Query(ctx, `

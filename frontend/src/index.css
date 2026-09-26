@@ -11,7 +11,7 @@
    ========================================================================== */
 :root {
   --bg: #fafafa;
-  --header: #ffffff;
+  --rail: #ffffff;
   --surface: #ffffff;
   --sunk: #f4f4f5;
   --border: #e4e4e7;
@@ -40,6 +40,9 @@
   --type-casual: #7c3aed;
   --type-sick: #db2777;
 
+  /* Dialog backdrop: 45% in light mode */
+  --backdrop: rgb(9 9 11 / 0.45);
+
   /* ok/danger hover: slightly darker in light mode */
   --ok-bg-hover: color-mix(in oklab, var(--ok-bg), black 7%);
   --danger-bg-hover: color-mix(in oklab, var(--danger-bg), black 7%);
@@ -54,7 +57,7 @@
 
 .dark {
   --bg: #09090b;
-  --header: #0c0c0e;
+  --rail: #0c0c0e;
   --surface: #111113;
   --sunk: #1a1a1e;
   --border: #27272a;
@@ -82,6 +85,9 @@
   --type-annual: #22d3ee;
   --type-casual: #a78bfa;
   --type-sick: #f472b6;
+
+  /* Dialog backdrop: 70% in dark mode */
+  --backdrop: rgb(0 0 0 / 0.7);
 
   /* ok/danger hover: slightly lighter in dark mode */
   --ok-bg-hover: color-mix(in oklab, var(--ok-bg), white 8%);
@@ -117,7 +123,7 @@
   --color-input: var(--border);
   --color-ring: var(--ring);
 
-  --color-header: var(--header);
+  --color-rail: var(--rail);
   --color-surface: var(--surface);
   --color-sunk: var(--sunk);
   --color-on-primary: var(--on-primary);
@@ -142,14 +148,16 @@
   --color-type-annual: var(--type-annual);
   --color-type-casual: var(--type-casual);
   --color-type-sick: var(--type-sick);
+  --color-backdrop: var(--backdrop);
 
-  /* 8px inputs/buttons, 10px stat tiles, 12px cards/tables */
+  /* 8px inputs/buttons, 10px stat tiles, 12px cards/tables, 16px dialogs */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 8px;
   --radius-xl: 12px;
   --radius-tile: 10px;
   --radius-card: 12px;
+  --radius-dialog: 16px;
 }
 
 /* Pending days inside any balance bar. */

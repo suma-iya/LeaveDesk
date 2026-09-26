@@ -1,20 +1,18 @@
-import type { LeaveApi } from './contract'
 import { authApi } from './auth'
-import { balancesApi } from './balances'
 import { calendarApi } from './calendar'
-import { mockApi } from './mock'
-import { profileApi } from './profile'
+import { filesApi } from './files'
+import { hrApi } from './hr'
+import { meApi } from './me'
 import { requestsApi } from './requests'
 
-export { ApiError } from './contract'
-export { tokenStore } from './http'
+export { ApiError } from './http'
 
-const httpApi: LeaveApi = { ...authApi, ...requestsApi, ...balancesApi, ...calendarApi, ...profileApi }
-
-/**
- * VITE_USE_MOCK=true (the default until the Go endpoints exist) serves every
- * call from in-memory seed data. Set VITE_USE_MOCK=false to call /api.
- */
-export const useMock = import.meta.env.VITE_USE_MOCK !== 'false'
-
-export const api: LeaveApi = useMock ? mockApi : httpApi
+/** Every backend call the UI makes, grouped by resource. */
+export const api = {
+  auth: authApi,
+  me: meApi,
+  requests: requestsApi,
+  hr: hrApi,
+  calendar: calendarApi,
+  files: filesApi,
+}

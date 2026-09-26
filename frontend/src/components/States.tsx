@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { RotateCcw } from 'lucide-react'
-import { Button } from '@/components/Button'
+import { AppButton } from '@/components/AppButton'
 
 export function EmptyState({ message, action }: { message: string; action?: ReactNode }) {
   return (
@@ -16,7 +16,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
   return (
     <div role="alert" className="flex flex-col items-center gap-3 px-4 py-12 text-center">
       <p className="text-sm text-danger">{message}</p>
-      {onRetry && <Button icon={RotateCcw} label="Try again" onClick={onRetry} />}
+      {onRetry && <AppButton icon={RotateCcw} label="Try again" onClick={onRetry} />}
     </div>
   )
 }

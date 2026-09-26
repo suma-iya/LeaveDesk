@@ -1,28 +1,36 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type QueryClient } from '@tanstack/react-query'
 import { api } from '@/api'
+import type { RequestFilters } from '@/types'
 
-/** Query keys in one place so mutations can invalidate the right caches. */
+/** Query keys in one place, so mutations know what to refresh. */
 export const keys = {
   me: ['me'] as const,
-  policy: ['policy'] as const,
+  bootstrap: ['bootstrap'] as const,
   departments: ['departments'] as const,
-  requests: ['requests'] as const, // prefix for every list
-  request: (id: string) => ['request', id] as const,
-  balances: (employeeId: string, year: number) => ['balances', employeeId, year] as const,
+  requests: (f?: RequestFilters) => (f ? (['requests', f] as const) : (['requests'] as const)),
+  request: (id: string | number) => ['request', String(id)] as const,
+  overlaps: (id: string | number) => ['overlaps', String(id)] as const,
+  balances: (year: number) => ['balances', year] as const,
   calendar: ['calendar'] as const,
-  profile: ['profile'] as const,
+  registrations: ['registrations'] as const,
+  employees: ['employees'] as const,
+  employee: (id: string) => ['employee', id] as const,
 }
 
-export const usePolicy = () => useQuery({ queryKey: keys.policy, queryFn: api.getPolicy, staleTime: Infinity })
+export const useDepartments = () =>
+  useQuery({ queryKey: keys.departments, queryFn: api.hr.departments, staleTime: 5 * 60_000 })
 
-export const useDepartments = () => useQuery({ queryKey: keys.departments, queryFn: api.listDepartments, staleTime: Infinity })
+export const useMyBalances = (year: number) =>
+  useQuery({ queryKey: keys.balances(year), queryFn: () => api.me.balances(year) })
 
-export const useBalances = (employeeId: string | undefined, year: number) =>
-  useQuery({
-    queryKey: keys.balances(employeeId ?? '', year),
-    queryFn: () => api.getBalances(employeeId!, year),
-    enabled: Boolean(employeeId),
-  })
+export const useRequestDetail = (id: string | number | undefined) =>
+  useQuery({ queryKey: keys.request(id ?? ''), queryFn: () => api.requests.get(id!), enabled: Boolean(id) })
 
-export const useRequestDetail = (id: string | undefined) =>
-  useQuery({ queryKey: keys.request(id ?? ''), queryFn: () => api.getRequest(id!), enabled: Boolean(id) })
+/** After any change to leave data, refetch every view that shows it. */
+export function refreshLeaveData(client: QueryClient) {
+  return Promise.all(
+    [['requests'], ['request'], ['overlaps'], ['balances'], ['calendar'], keys.me, keys.employees, ['employee']].map((queryKey) =>
+      client.invalidateQueries({ queryKey }),
+    ),
+  )
+}

@@ -1,28 +1,29 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { IconButton } from '@/components/Button'
+import { IconButton } from '@/components/AppButton'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { cn } from '@/lib/utils'
 
 interface PageHeaderProps {
   title: ReactNode
   subtitle?: ReactNode
+  /** List pages: Request leave · Calendar · Export (in that order). */
   actions?: ReactNode
-  /** Detail pages: a back icon button and a breadcrumb above a 22px title. */
+  /** Detail and form pages: back icon button + breadcrumb, 22px title. */
   back?: { to: string; label: string }
   breadcrumb?: { label: string; to?: string }[]
+  /** Next to the title on detail pages (e.g. a status badge). */
+  titleAside?: ReactNode
 }
 
-export function PageHeader({ title, subtitle, actions, back, breadcrumb }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, actions, back, breadcrumb, titleAside }: PageHeaderProps) {
   const isMobile = useIsMobile()
   const detail = Boolean(back)
-  // On mobile, sub-pages show their back button and title in the app bar.
-  if (detail && isMobile) return null
   return (
     <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="flex min-w-0 items-start gap-3">
-        {back && <IconButton icon={ArrowLeft} label={back.label} to={back.to} variant="secondary" />}
+        {back && !isMobile && <IconButton icon={ArrowLeft} label={back.label} to={back.to} variant="secondary" />}
         <div className="min-w-0">
           {breadcrumb && (
             <nav aria-label="Breadcrumb" className="mb-1 flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">
@@ -35,11 +36,14 @@ export function PageHeader({ title, subtitle, actions, back, breadcrumb }: PageH
               ))}
             </nav>
           )}
-          <h1 className={cn('font-bold tracking-[-0.02em]', detail ? 'text-[22px]' : 'text-[26px]')}>{title}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className={cn('font-bold tracking-[-0.02em]', detail ? 'text-[22px]' : 'text-[26px]')}>{title}</h1>
+            {titleAside}
+          </div>
           {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
         </div>
       </div>
-      {actions && <div className="grid grid-cols-2 gap-2 md:flex md:shrink-0 md:items-center">{actions}</div>}
+      {actions && <div className="flex shrink-0 items-center gap-2 max-md:[&>*:first-child]:flex-1">{actions}</div>}
     </header>
   )
 }

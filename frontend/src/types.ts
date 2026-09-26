@@ -1,142 +1,148 @@
-// Domain types shared by the API layer and the UI.
+// Shapes of the Go API's JSON. Dates are ISO "yyyy-MM-dd" strings.
 
 export type Role = 'hr' | 'employee'
-export type LeaveType = 'Annual' | 'Casual' | 'Sick'
-export type Status = 'pending' | 'approved' | 'rejected'
+export type AccountStatus = 'pending' | 'active'
+export type LeaveType = 'annual' | 'casual' | 'sick'
+export type Status = 'pending' | 'approved' | 'rejected' | 'cancelled'
 
-export interface Employee {
+export interface Department {
+  id: number
+  name: string
+}
+
+export interface User {
   id: string
+  email: string
   firstName: string
   lastName: string
+  dateOfBirth: string
   age: number
-  yearsAtCompany: number
-  department: string
-  jobTitle: string
-  email: string
-  avatarUrl?: string
   role: Role
-}
-
-export interface Attachment {
-  url: string
-  name: string
-  sizeBytes: number
-  mime: string
-  pages?: number
-}
-
-export interface LeaveRequest {
-  id: string // "LV-2041", only shown on the details page
-  employeeId: string
-  type: LeaveType
-  startDate: string // ISO yyyy-MM-dd
-  endDate: string
-  workingDays: number
-  reason: string
-  attachment?: Attachment
-  status: Status
-  submittedAt: string
-  decidedAt?: string
-  decidedBy?: string
-  decisionNote?: string
+  status: AccountStatus
+  department: Department | null
+  joinedOn: string | null
+  avatarUrl?: string
+  createdAt: string
+  hasPassword: boolean
 }
 
 export interface Balance {
   type: LeaveType
-  allowance: number
+  limit: number
   used: number
   pending: number
+  available: number
+  isDefault: boolean
 }
 
-export interface Policy {
-  allowances: Record<LeaveType, number>
-  weekendDays: number[] // 0 = Sunday … 6 = Saturday; Bangladesh: [5, 6]
-}
-
-// ---- API shapes ----
-
-export interface Session {
-  token: string
-  user: Employee
-}
-
-/** Yearly totals across all leave types. */
-export interface YearTotals {
-  allowance: number
+/** Sum over all types for one person and year ("8/22 used"). */
+export interface YearTotal {
   used: number
   pending: number
+  limit: number
 }
 
-/** A request joined with who asked for it (and, for HR, their yearly totals). */
-export interface RequestRow {
-  request: LeaveRequest
-  employee: Employee
-  yearly?: YearTotals
-  decidedByName?: string
+/** The requester or decider shown next to a request. */
+export interface Person {
+  id: string
+  firstName: string
+  lastName: string
+  avatarUrl?: string
+  department: Department | null
+  joinedOn?: string
+  age?: number
 }
 
-export interface ListRequestsParams {
-  status?: Status | Status[]
-  type?: LeaveType
-  department?: string
-  from?: string // leave dates overlapping [from, to]
-  to?: string
-  year?: number
-  q?: string
-  mine?: boolean
-  page?: number // omit page/pageSize to get every match
-  pageSize?: number
+export interface FileMeta {
+  id: string
+  url: string
+  name: string
+  mime: string
+  sizeBytes: number
+}
+
+export interface LeaveRequest {
+  id: number
+  code: string // "LV-2041": only shown on detail pages
+  type: LeaveType
+  startDate: string
+  endDate: string
+  workingDays: number
+  reason: string
+  status: Status
+  submittedAt: string
+  decidedAt: string | null
+  decisionNote: string
+  employee: Person
+  decidedBy: Person | null
+  attachment: FileMeta | null
+  yearly?: YearTotal // HR lists only
 }
 
 export interface Page<T> {
   items: T[]
   total: number
+  page: number
 }
 
-export interface RequestInput {
+export interface RequestFilters {
+  scope?: 'mine' | 'all'
+  status?: Status[]
+  type?: LeaveType
+  department?: number
+  q?: string
+  year?: number
+  page?: number
+  pageSize?: number
+}
+
+export interface Draft {
   type: LeaveType
   startDate: string
   endDate: string
   reason: string
-  attachment?: Attachment
+  attachmentFileId?: string | null
 }
 
-export interface Decision {
-  status: Exclude<Status, 'pending'>
-  note?: string
-}
-
-export interface RequestDetail extends RequestRow {
-  balances: Balance[]
-  /** Teammates in the same department away during these dates (HR view). */
-  overlapping: RequestRow[]
-  decider?: Employee
-}
-
-export interface CalendarFilters {
-  department?: string
-  type?: LeaveType
-  includePending: boolean
-}
-
-export interface CalendarEntry {
-  request: LeaveRequest
-  employee: Employee
-  daysLeft?: number // only sent to HR
-}
-
-export interface Profile extends Employee {
-  notifyOnChange: boolean
-  weeklyDigest: boolean
-}
-
-export interface ProfileUpdate {
+export interface Away {
+  requestId: number
+  userId: string
   firstName: string
   lastName: string
-  age: number
-  email: string
-  notifyOnChange: boolean
-  weeklyDigest: boolean
-  currentPassword?: string
-  newPassword?: string
+  avatarUrl?: string
+  department: Department | null
+  type: LeaveType
+  startDate: string
+  endDate: string
+  status: Status
+}
+
+export interface CalendarDay {
+  date: string
+  people: Away[]
+}
+
+export interface EmployeeRow extends User {
+  yearly: YearTotal
+}
+
+export interface Salary {
+  monthlyBdt: number
+  effectiveFrom: string
+  recordedAt: string
+}
+
+export interface EmployeeDetail {
+  employee: User
+  salary: { current: Salary | null; history: Salary[] }
+  year: number
+  balances: Balance[]
+  defaults: Record<LeaveType, number>
+  recentRequests: LeaveRequest[]
+}
+
+export interface EmployeeChange {
+  departmentId?: number
+  salary?: { monthlyBdt: number; effectiveFrom: string }
+  limits?: Record<LeaveType, number>
 }

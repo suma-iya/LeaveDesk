@@ -7,14 +7,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useIsMobile } from '@/lib/useIsMobile'
 import { cn } from '@/lib/utils'
 
-// The ONLY button in the app. Two shapes:
-//  - labeled: icon + text. Desktop is always exactly 140×36; mobile fills its
-//    grid cell at 44px; sticky bottom actions are 48px.
+// The ONLY button in the app: <AppButton variant shape size>.
+//  - labeled: icon + text. Desktop is always exactly 140×36; on mobile and in
+//    auth forms ("block") it fills the width at 44px; sticky bottom bars 48px.
 //  - icon: square, 36 desktop / 44 mobile, always with aria-label + tooltip.
-// Sizes are fixed here so no page can drift from the spec.
+// Icon buttons inside a card or toolbar are ghost; page-level ones secondary.
+// Sizes live here so no page can drift from the spec.
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'ok' | 'danger'
-export type ButtonSize = 'desktop' | 'mobile' | 'sticky'
+export type ButtonSize = 'desktop' | 'mobile' | 'block' | 'sticky'
 
 const buttonStyles = cva(
   [
@@ -33,14 +34,14 @@ const buttonStyles = cva(
         danger: 'bg-danger-bg text-danger hover:bg-danger-bg-hover',
       },
       shape: { labeled: 'gap-2 px-1 text-[13.5px] tracking-[-0.01em]', icon: 'p-0' },
-      size: { desktop: '', mobile: '', sticky: '' },
+      size: { desktop: '', mobile: '', block: '', sticky: '' },
     },
     compoundVariants: [
       { shape: 'labeled', size: 'desktop', className: 'h-9 w-[140px]' },
-      { shape: 'labeled', size: 'mobile', className: 'h-11 w-full' },
+      { shape: 'labeled', size: ['mobile', 'block'], className: 'h-11 w-full' },
       { shape: 'labeled', size: 'sticky', className: 'h-12 w-full' },
       { shape: 'icon', size: 'desktop', className: 'size-9' },
-      { shape: 'icon', size: ['mobile', 'sticky'], className: 'size-11' },
+      { shape: 'icon', size: ['mobile', 'block', 'sticky'], className: 'size-11' },
     ],
   },
 )
@@ -70,7 +71,7 @@ export interface IconButtonProps extends BaseProps {
   label: string
 }
 
-export function Button(props: LabeledButtonProps | IconButtonProps) {
+export function AppButton(props: LabeledButtonProps | IconButtonProps) {
   const isMobile = useIsMobile()
   const {
     icon: Icon, label, variant = 'secondary', shape = 'labeled', size, loading = false,
@@ -119,7 +120,7 @@ export function Button(props: LabeledButtonProps | IconButtonProps) {
   )
 }
 
-/** Shorthand for <Button shape="icon" />. */
+/** Shorthand for <AppButton shape="icon" />. */
 export function IconButton(props: Omit<IconButtonProps, 'shape'>) {
-  return <Button {...props} shape="icon" />
+  return <AppButton {...props} shape="icon" />
 }

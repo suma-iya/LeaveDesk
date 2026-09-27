@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ChevronsUpDown, LogOut, UserRound } from 'lucide-react'
+import { LogOut, UserRound } from 'lucide-react'
 import { Avatar } from '@/components/Avatar'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -35,7 +35,6 @@ export function AccountMenu({ layout, className }: { layout: 'expanded' | 'colla
           {ROLE_LABEL[user.role]} · {user.department?.name ?? 'No department yet'}
         </span>
       </span>
-      <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
     </DropdownMenuTrigger>
   ) : (
     <DropdownMenuTrigger {...triggerProps} className={cn('rounded-full', layout === 'mobile' && 'max-md:p-[5px]', focusRing, className)}>

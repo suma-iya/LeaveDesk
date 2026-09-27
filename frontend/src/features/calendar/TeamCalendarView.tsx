@@ -86,60 +86,69 @@ export function TeamCalendarView() {
       <IconButton icon={ChevronRight} label="Next month" variant="ghost" onClick={() => setMonth((m) => addMonths(m, 1))} />
     </div>
   )
+  // Desktop: the dashed-ring pending symbol sits in front of the switch label
+  // (the switch moved from the toolbar to the end of the legend row).
   const pendingSwitch = (
     <div className="flex items-center gap-2">
       <Switch id="include-pending" checked={includePending} onCheckedChange={setIncludePending} />
-      <Label htmlFor="include-pending" className="text-[13px] whitespace-nowrap">Include pending</Label>
+      <Label htmlFor="include-pending" className="flex items-center gap-1.5 text-[13px] whitespace-nowrap">
+        {!isMobile && <span className="size-3.5 rounded-full border-[1.5px] border-dashed border-pending" aria-hidden />}
+        Include pending
+      </Label>
     </div>
   )
+  // One row per week (5 or 6), sharing the leftover height equally, so days
+  // are 96px or taller whenever the window has room (1440×900 and up). On
+  // shorter windows they shrink, never below 72px, instead of pushing the
+  // legend out of the card or scrolling the page.
+  const weeks = Math.max(5, Math.ceil((calendar.isPending ? 35 : days.length) / 7))
 
   return (
-    <>
-      <div className={cn('flex min-h-0 gap-5', isMobile && 'flex-col')}>
-        <section className={cn('rounded-card border bg-surface', isMobile ? 'p-3' : 'w-[940px] shrink-0 p-5')}>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            {monthNav}
-            {!isMobile && (
-              <>
-                <AppButton icon={CalendarDays} label="Today" onClick={goToToday} />
-                <span className="flex-1" />
-                <FilterSelect className="h-9! w-[160px]" filter={{ kind: 'select', id: 'department', label: 'Department', value: department,
-                  defaultValue: ALL, options: optionsFrom('All departments', departments.map((d) => ({ value: String(d.id), label: d.name }))), onChange: setDepartment }} />
-                <FilterSelect className="h-9! w-[150px]" filter={{ kind: 'select', id: 'type', label: 'Leave type', value: type,
-                  defaultValue: ALL, options: optionsFrom('All leave types', LEAVE_TYPES.map((t) => ({ value: t, label: TYPE_LABEL[t] }))), onChange: setType }} />
-                {pendingSwitch}
-              </>
-            )}
-          </div>
-
-          <div className={cn('grid grid-cols-7', isMobile ? 'gap-1' : 'gap-1.5')} role="grid" aria-label={formatMonth(month)}>
-            {WEEKDAYS.map((d, i) => (
-              <div key={d} role="columnheader" className={cn('pb-1 text-center text-xs font-semibold', i >= 5 ? 'text-weekend' : 'text-muted-foreground')}>{d}</div>
-            ))}
-            {calendar.isPending
-              ? Array.from({ length: 35 }, (_, i) => <Skeleton key={i} className={isMobile ? 'h-[50px]' : 'h-24'} />)
-              : days.map(({ date }) => (
-                <DayButton key={date} date={date} month={month} selected={selected === date} people={peopleOn(date)}
-                  onSelect={setSelected} compact={isMobile} />
-              ))}
-          </div>
-
+    <div className={cn('flex gap-5', isMobile ? 'flex-col' : 'min-h-0 flex-1')}>
+      <section className={cn('flex min-w-0 flex-col rounded-card border bg-surface', isMobile ? 'p-3' : 'flex-1 p-5')}>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {monthNav}
           {!isMobile && (
-            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                Busier days are shaded darker
-                {HEAT_BG.slice(1).map((bg) => <span key={bg} className={cn('size-3.5 rounded-[3px] border', bg)} aria-hidden />)}
-              </span>
-              <span className="flex items-center gap-1.5"><span className="size-3.5 rounded-full border-[1.5px] border-dashed border-pending" aria-hidden />dashed ring = pending</span>
-              <span className="flex items-center gap-1.5"><span className="size-3.5 rounded-[3px] border bg-weekend-bg" aria-hidden />Weekend</span>
-            </div>
+            <>
+              <AppButton icon={CalendarDays} label="Today" onClick={goToToday} />
+              <span className="flex-1" />
+              <FilterSelect className="h-9! w-[150px]" filter={{ kind: 'select', id: 'department', label: 'Department', value: department,
+                defaultValue: ALL, options: optionsFrom('All departments', departments.map((d) => ({ value: String(d.id), label: d.name }))), onChange: setDepartment }} />
+              <FilterSelect className="h-9! w-[140px]" filter={{ kind: 'select', id: 'type', label: 'Leave type', value: type,
+                defaultValue: ALL, options: optionsFrom('All leave types', LEAVE_TYPES.map((t) => ({ value: t, label: TYPE_LABEL[t] }))), onChange: setType }} />
+            </>
           )}
-        </section>
+        </div>
 
-        <DayPanel day={selected} people={isWeekend(selected) ? [] : peopleOn(selected)}
-          titleAside={isMobile ? pendingSwitch : undefined} className={isMobile ? '' : 'min-w-0 flex-1 self-start'} />
-      </div>
-    </>
+        {/* Six-week months tighten the row gap to 4px so the legend stays inside the card on short windows. */}
+        <div className={cn('grid grid-cols-7', isMobile ? 'gap-1' : cn('flex-1 gap-x-1.5', weeks > 5 ? 'gap-y-1' : 'gap-y-1.5'))} role="grid" aria-label={formatMonth(month)}
+          style={isMobile ? undefined : { gridTemplateRows: `auto repeat(${weeks}, minmax(72px, 1fr))` }}>
+          {WEEKDAYS.map((d, i) => (
+            <div key={d} role="columnheader" className={cn('pb-1 text-center text-xs font-semibold', i >= 5 ? 'text-weekend' : 'text-muted-foreground')}>{d}</div>
+          ))}
+          {calendar.isPending
+            ? Array.from({ length: 35 }, (_, i) => <Skeleton key={i} className={isMobile ? 'h-[50px]' : 'h-full'} />)
+            : days.map(({ date }) => (
+              <DayButton key={date} date={date} month={month} selected={selected === date} people={peopleOn(date)}
+                onSelect={setSelected} compact={isMobile} />
+            ))}
+        </div>
+
+        {!isMobile && (
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              Busier days are shaded darker
+              {HEAT_BG.slice(1).map((bg) => <span key={bg} className={cn('size-3.5 rounded-[3px] border', bg)} aria-hidden />)}
+            </span>
+            <span className="flex items-center gap-1.5"><span className="size-3.5 rounded-[3px] border bg-weekend-bg" aria-hidden />Weekend</span>
+            <div className="ml-auto text-foreground">{pendingSwitch}</div>
+          </div>
+        )}
+      </section>
+
+      <DayPanel day={selected} people={isWeekend(selected) ? [] : peopleOn(selected)}
+        titleAside={isMobile ? pendingSwitch : undefined} className={isMobile ? '' : 'max-h-full w-[360px] shrink-0 self-start'} />
+    </div>
   )
 }
 
@@ -147,12 +156,34 @@ function dayLabel(date: string, people: Away[]) {
   return `${format(parseISO(date), 'MMMM d')}, ${isWeekend(date) ? 'weekend' : `${people.length} ${people.length === 1 ? 'person' : 'people'} on leave`}`
 }
 
-/** 96px desktop cell (number, up to 3 avatars + "+N") or 50px mobile cell (dots). */
+
+/** Desktop cell at least 96px tall (number, up to 3 avatars, or 2 and "+N") or 50px mobile cell (dots). */
 function DayButton({ date, month, selected, people, onSelect, compact }: {
   date: string; month: Date; selected: boolean; people: Away[]; onSelect: (iso: string) => void; compact: boolean
 }) {
   const weekend = isWeekend(date)
   const otherMonth = !isSameMonth(parseISO(date), month)
+  // Up to 3 avatars; with more people, 2 and "+N". A cell too narrow for that
+  // (three avatars need about 76px inside, two and "+N" about 72px; e.g.
+  // 1280px wide with the sidebar open) shows up to 2, or 1 and "+N". The
+  // cell's own width decides, so no cell ever overflows.
+  const roomy = people.length > 3 ? 'flex @max-[72px]:hidden' : 'flex @max-[76px]:hidden'
+  const narrow = people.length > 3 ? 'hidden @max-[72px]:flex' : 'hidden @max-[76px]:flex'
+  const avatars = (limit: number, className: string) => {
+    const shown = people.length > limit ? limit - 1 : limit
+    return (
+      <span className={cn('items-center', className)}>
+        {people.slice(0, shown).map((p, i) => (
+          // 2px surface ring keeps overlapping avatars apart; pending gets a dashed amber ring.
+          <span key={p.requestId} className={cn('rounded-full bg-surface p-0.5', i > 0 && '-ml-1.5',
+            p.status === 'pending' && 'outline-[1.5px] outline-pending outline-dashed')}>
+            <Avatar name={fullName(p)} src={p.avatarUrl} size={26} />
+          </span>
+        ))}
+        {people.length > shown && <span className="ml-1 text-xs font-semibold text-muted-foreground">+{people.length - shown}</span>}
+      </span>
+    )
+  }
   return (
     <button
       type="button"
@@ -162,7 +193,7 @@ function DayButton({ date, month, selected, people, onSelect, compact }: {
       className={cn(
         'flex rounded-md border transition-colors',
         'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none',
-        compact ? 'h-[50px] flex-col items-center justify-center gap-1' : 'h-24 flex-col justify-between p-2 text-left',
+        compact ? 'h-[50px] flex-col items-center justify-center gap-1' : '@container h-full flex-col justify-between p-2 text-left',
         weekend ? 'bg-weekend-bg' : heat(people.length),
         selected ? cn('border-2 border-highlight', !compact && 'p-[7px]') : 'hover:border-highlight/50',
         otherMonth && 'opacity-40',
@@ -180,16 +211,10 @@ function DayButton({ date, month, selected, people, onSelect, compact }: {
       ) : weekend ? (
         <span className="text-[11.5px] font-semibold text-weekend">Weekend</span>
       ) : people.length > 0 && (
-        <span className="flex items-center">
-          {people.slice(0, 3).map((p, i) => (
-            // 2px surface ring keeps overlapping avatars apart; pending gets a dashed amber ring.
-            <span key={p.requestId} className={cn('rounded-full bg-surface p-0.5', i > 0 && '-ml-1.5',
-              p.status === 'pending' && 'outline-[1.5px] outline-pending outline-dashed')}>
-              <Avatar name={fullName(p)} src={p.avatarUrl} size={26} />
-            </span>
-          ))}
-          {people.length > 3 && <span className="ml-1 text-xs font-semibold text-muted-foreground">+{people.length - 3}</span>}
-        </span>
+        <>
+          {avatars(3, roomy)}
+          {avatars(2, narrow)}
+        </>
       )}
     </button>
   )

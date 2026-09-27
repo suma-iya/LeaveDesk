@@ -11,11 +11,13 @@ export function TeamCalendarPage() {
     return () => { document.title = previous }
   }, [])
 
+  // Desktop: exactly the viewport height (main's py-7 is 3.5rem), so the
+  // month fills the space below the header without a page scroll.
   return (
-    <>
+    <div className="flex flex-col gap-5 md:h-[calc(100svh-3.5rem)]">
       <PageHeader title="Team calendar" subtitle="Click a day to see who is away. Fri and Sat are weekend."
         actions={<HeaderActions />} />
       <TeamCalendarView />
-    </>
+    </div>
   )
 }

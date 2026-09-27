@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef, type RowData } from '@tanstack/react-table'
-import { ChevronLeft, ChevronRight, RotateCcw, SlidersHorizontal, X } from 'lucide-react'
+import { RotateCcw, SlidersHorizontal, X } from 'lucide-react'
 import { AppButton, IconButton } from '@/components/AppButton'
 import { Card, CardTitle } from '@/components/Card'
 import { FilterSelect, SearchInput, type FilterDef, type SelectFilter } from '@/components/Filters'
+import { Pagination } from '@/components/Pagination'
 import { EmptyState, ErrorState } from '@/components/States'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -45,11 +46,14 @@ export interface DataTableProps<T> {
 /**
  * The one table pattern for every list page: a card with a filter toolbar,
  * a TanStack Table, and a footer with "Showing 1–10 of 23", rows per page
- * (10 / 20 / 40) and Previous · Page 1 of 3 · Next. Below 768px rows become
+ * (10 / 20 / 40) and ‹ Page 1 of 3 › (Pagination). Below 768px rows become
  * cards and filters move into a bottom sheet shown as removable chips.
  */
 export function DataTable<T>(props: DataTableProps<T>) {
   const isMobile = useIsMobile()
+  // The React Compiler can't memoise TanStack Table's API; this component
+  // doesn't rely on memoisation, so the warning doesn't apply here.
+  // oxlint-disable-next-line react/incompatible-library
   const table = useReactTable({
     data: props.rows ?? [],
     columns: props.columns,
@@ -62,8 +66,6 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
   const first = total === 0 ? 0 : (page - 1) * pageSize + 1
   const last = Math.min(total, page * pageSize)
-  const canPrev = page > 1
-  const canNext = page < pageCount
 
   const body = props.error ? <ErrorState error={props.error} onRetry={props.onRetry} />
     : !props.isLoading && total === 0 ? <EmptyState message={props.emptyMessage} />
@@ -95,8 +97,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
           <footer className="flex items-center gap-2 text-[13px] text-muted-foreground">
             <span className="mr-auto">{first}–{last} of {total}</span>
             <PageSizeSelect value={pageSize} onChange={props.onPageSizeChange} />
-            <IconButton icon={ChevronLeft} label="Previous page" variant="secondary" disabled={!canPrev} onClick={() => props.onPageChange(page - 1)} />
-            <IconButton icon={ChevronRight} label="Next page" variant="secondary" disabled={!canNext} onClick={() => props.onPageChange(page + 1)} />
+            <Pagination page={page} pageCount={pageCount} onPageChange={props.onPageChange} />
           </footer>
         )}
       </section>
@@ -159,9 +160,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
             Rows per page
             <PageSizeSelect value={pageSize} onChange={props.onPageSizeChange} />
           </span>
-          <AppButton icon={ChevronLeft} label="Previous" disabled={!canPrev} onClick={() => props.onPageChange(page - 1)} />
-          <span className="whitespace-nowrap text-foreground">Page {page} of {pageCount}</span>
-          <AppButton icon={ChevronRight} label="Next" disabled={!canNext} onClick={() => props.onPageChange(page + 1)} />
+          <Pagination page={page} pageCount={pageCount} onPageChange={props.onPageChange} showPageOf className="gap-3" />
         </footer>
       )}
     </Card>

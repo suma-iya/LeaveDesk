@@ -14,6 +14,29 @@ A leave tracker for a small company: employees request leave on a calendar, HR a
 - **People.** HR sets each person's department, salary (with history) and per-person leave limits. Every change is written to an audit log.
 - **Sign-in** with email and password, or optionally Google. The session is an httpOnly cookie, and the Go API enforces every rule.
 
+<details>
+<summary>Full feature list</summary>
+
+| Employee | HR |
+|---|---|
+| **My leave:** available days in total and per type, with used and pending shown on the bars | **Pending:** every waiting request, with each person's yearly "8/22 used" bar |
+| **Request leave:** a month picker that never counts Fri or Sat, a live working-day count, and the same checks as the server | **Approve / Reject** from the table or the review page, with an optional note and 5 seconds to **Undo** |
+| **Attachments:** a PDF, PNG or JPG up to 5 MB, previewed in the page | **Review page:** employee card, "If approved: N days left", teammates away on the same dates, the attachment |
+| **Edit or cancel** a request while it is pending; **Request again** after a rejection | **Approved** and **All** tables with search and filters, and CSV **Export** |
+| **History** of decided requests with HR's note | **People:** department, salary with history, and per-person leave limits (never below the days already used) |
+| **Team calendar** showing who is away each day | The same calendar, filtered by department or leave type |
+| **Profile:** photo (JPG or PNG up to 2 MB), name, date of birth, password. Google-only accounts can **set a password** | The same profile page. HR can't change anyone's name, email, date of birth, password or joining date, nor their own salary or limits |
+
+**Everywhere:**
+- A light/dark theme icon in the page header.
+- A sidebar that collapses to icons (button or Ctrl/Cmd+B) and remembers the choice.
+- A bottom tab bar on phones.
+- Keyboard focus rings and tooltips on every icon button.
+
+**Salary** is visible to HR only. **Every HR change** writes an audit-log row. **Decisions held for Undo** are still sent if the tab closes, using `fetch keepalive`.
+
+</details>
+
 ## Screenshots
 
 | HR | Employee |
@@ -83,6 +106,36 @@ docker compose exec backend /app/leavedesk demote --email someone@company.test
 ```
 
 `demote` refuses to remove the last HR. Other commands: `make down` stops the stack, `make logs` follows the API log, and `make reset` deletes the database and uploaded files.
+
+## Configuration
+
+Every setting comes from `.env` (copied from `.env.example`). Only `JWT_SECRET` is required: the stack refuses to start without it.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `JWT_SECRET` | none (required, 16+ characters) | Signs the session cookie |
+| `SESSION_TTL` | `8h` | How long a sign-in lasts |
+| `COOKIE_SECURE` | `false` | Set to `true` when the app is served over HTTPS |
+| `APP_TIMEZONE` | `Asia/Dhaka` | Decides which calendar day "today" is |
+| `LEAVE_DEFAULT_ANNUAL` / `_CASUAL` / `_SICK` | `16` / `3` / `3` | Default yearly allowance per type; HR can override it per person and year |
+| `ALLOWED_EMAIL_DOMAINS` | empty (any domain) | Comma-separated domains allowed to sign up, and to use Google sign-in |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URL` | empty; redirect `http://localhost:3000/api/auth/google/callback` | Optional Google sign-in (see below) |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | `leavedesk`, `leavedesk`, `leavedesk_secret` | The database the stack creates |
+| `FRONTEND_PORT` | `3000` | The port the app is published on |
+
+After changing `.env`, run `make up` again; Compose recreates the containers whose settings changed.
+
+## Local development
+
+To work on the UI with instant reload, keep the stack running and start Vite, which forwards `/api` to it the way nginx does:
+
+```bash
+cd frontend
+npm install
+API_PROXY=http://localhost:3000 npm run dev    # http://localhost:5173
+```
+
+`npm run build` type-checks and builds, and `npm run lint` runs oxlint. The Go API is built inside Docker (`make up`). `make test` runs `go vet` and the Go tests in a Go 1.23 container, so a local Go install isn't needed.
 
 ## Tech stack and why
 

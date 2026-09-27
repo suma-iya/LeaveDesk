@@ -1,76 +1,69 @@
-# LeaveDesk: Employee Leave Tracker
+# LeaveDesk
 
-LeaveDesk is a full-stack web app for requesting and approving leave.
+A leave tracker for a small company: employees request leave on a calendar, HR approves or rejects it, and every balance updates on its own.
 
-- **Employees** see their yearly balance per leave type. They request leave on a calendar that skips weekends, attach a medical note or plan, and follow each request until HR decides.
-- **HR** approves or rejects requests, with Undo. HR also sets each person's department, salary and per-person leave limits, and sees who is away on a team calendar.
+![HR pending requests table with each person's yearly leave bar](docs/screenshots/02-hr-pending.png)
 
-Sign-in uses email and password, and optionally Google. The session is a JWT in an httpOnly cookie. Every rule is enforced by the Go API; the UI only mirrors the rules to give instant feedback.
+## What it does
 
-- **Backend:** Go 1.23 (`net/http`), PostgreSQL 16, pgx, golang-migrate
-- **Frontend:** React 19 + TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query and Table
-- **Runs with:** `docker compose up --build`, which starts three containers: `frontend`, `backend` and `db`
+- **Two roles.** Employees request leave; HR decides. The first account ever created becomes HR, and everyone in the Human Resources department is HR.
+- **Requesting leave.** An employee picks dates on a calendar. Fridays and Saturdays are never counted, and the form shows the working days and the balance left before sending.
+- **Deciding.** HR approves or rejects from the Pending table or a review page, with an optional note. A toast offers **Undo** for 5 seconds.
+- **Balances.** Each person has a yearly allowance per type (Annual 16, Casual 3, Sick 3 by default). Approved days count as used, and waiting days as pending.
+- **Team view.** A calendar shows who is away each day, and every HR table exports to CSV.
+- **People.** HR sets each person's department, salary (with history) and per-person leave limits. Every change is written to an audit log.
+- **Sign-in** with email and password, or optionally Google. The session is an httpOnly cookie, and the Go API enforces every rule.
 
-The written explanation (architecture, key components, API internals, Docker) is in **[docs/EXPLANATION.md](docs/EXPLANATION.md)**.
+## Screenshots
 
----
-
-## 1. What the app does
-
-| Employee | HR |
+| HR | Employee |
 |---|---|
-| **My leave:** available days in total and per type (Annual 16, Casual 3, Sick 3), shown as stacked used/pending bars | **Pending:** every waiting request, with each person's yearly "8/22 used" bar |
-| **Request leave:** a month picker where Fri and Sat are never counted, a live working-day count, and the same validation as the server | **Approve / Reject** from the table or the review page. Rejecting asks for an optional note. A toast offers **Undo** for 5 seconds |
-| Edit or cancel a request while it is pending. **Request again** after a rejection | **Review page:** employee card, "If approved: N days left", teammates away on the same dates, the attachment |
-| **History** of decided requests with HR's note | **Approved** and **All** tables |
-| **Request details** with an in-page PDF preview | **People:** everyone's leave this year; change a person's department, salary (with history) and leave limits |
-| **Team calendar** overlay showing who is away each day | The same calendar, plus CSV **Export** of any table |
-| **Profile:** photo, name, date of birth, password, light/dark theme | The same profile page |
+| ![Review page for Nusrat's 04–08 Oct request, with an overlap warning and the Approve and Reject buttons](docs/screenshots/03-hr-review.png)<br>**Review:** who is asking, how many days are left, and which teammates are away on the same dates. | ![My leave page with the yearly total and one card per leave type](docs/screenshots/07-employee-my-leave.png)<br>**My leave:** available days in total and per type, with pending requests below. |
+| ![Team calendar for October 2026 with 7 October selected and seven people on leave](docs/screenshots/04-team-calendar.png)<br>**Team calendar:** who is away each day; pending leave has a dashed ring. | ![Request form with 6–7 October selected and a red message saying the dates overlap a pending request](docs/screenshots/08-request-leave-error.png)<br>**Request leave:** the form explains a problem before anything is sent. |
 
-The rules the server enforces:
+<p>
+  <img src="docs/screenshots/11-mobile-my-leave.png" width="300" alt="My leave on a phone, with balance cards and the bottom tab bar">
+  <img src="docs/screenshots/12-mobile-hr-pending-dark.png" width="300" alt="HR pending requests on a phone in the dark theme, as cards with Reject and Approve buttons">
+</p>
 
-- The first account ever created becomes HR. Everyone who signs up after that is an employee and can use the app straight away, with no approval step.
-- A request needs at least one working day. It cannot overlap your own pending or approved leave, and cannot exceed `limit − used − pending` for its type.
-- Only pending requests can be edited, cancelled or decided. **Nobody can decide their own request**; HR's own requests go to another HR.
-- Salary is visible to HR only. HR cannot change anyone's name, email, date of birth, password, role or joining date. HR cannot change their own salary or limits either.
+On phones, the sidebar becomes a bottom tab bar and tables become cards. Both themes work everywhere.
 
-## 2. Tech stack and why
+<details>
+<summary>More screenshots</summary>
 
-| Layer | Choice | Why |
-|---|---|---|
-| HTTP | Go 1.23 standard library `net/http` (method + `{id}` patterns from Go 1.22) | Enough for every route, with no framework to learn or explain. This follows the project's backend rule. |
-| Database | PostgreSQL 16 + `pgx/v5` (pgxpool), hand-written SQL | Foreign keys, CHECK constraints, date maths and advisory locks for the concurrency rules |
-| Migrations | `golang-migrate` with SQL embedded in the binary | Runs on startup, so there are no manual steps |
-| Auth | `bcrypt`, `golang-jwt/jwt/v5` (HS256), Google OpenID Connect | Salted password hashes, and a stateless signed session in an httpOnly cookie |
-| Logging | `log/slog` (JSON) | One structured line per request |
-| UI | React 19 + TypeScript (strict) + React Router 7, built by Vite | Typed components and client-side routing |
-| Data | TanStack Query (cache, refetch after changes) and TanStack Table (server-paged tables) | Server state without hand-written loading and caching |
-| Components | shadcn/ui (Radix) + Tailwind CSS v4, lucide icons, Geist font | Accessible building blocks. Every colour is a light/dark design token |
-| Dates, PDF | date-fns, react-pdf | Year-always date formats and Fri/Sat working-day maths, plus an in-page PDF preview |
-| Serving | nginx | Serves the built UI and proxies `/api` to Go on the same origin |
+![Sign-in page with email, password and Continue with Google](docs/screenshots/01-sign-in.png)
+**Sign in.**
 
-## 3. Setup
+![People page listing every employee with their department and leave used this year](docs/screenshots/05-hr-people.png)
+**People:** everyone's leave this year, searchable and filterable by department.
 
-Prerequisites: Docker Desktop, or Docker Engine with the compose plugin.
+![Nusrat's employee page with department, salary history and leave limits for 2026](docs/screenshots/06-hr-employee.png)
+**Employee page:** department, salary history and this year's leave limits, which can't go below the days already used.
+
+![A rejected request with HR's note and the attached travel plan PDF shown in the page](docs/screenshots/09-rejected-request.png)
+**Request details:** HR's note and an in-page PDF preview of the attachment.
+
+![History of decided requests in the dark theme](docs/screenshots/10-history-dark.png)
+**History** in the dark theme.
+
+</details>
+
+## Quick start
+
+You need Docker Desktop, or Docker Engine with the compose plugin.
 
 ```bash
 cp .env.example .env
-docker compose up --build
 ```
 
-Before starting, open `.env` and set `JWT_SECRET` to a long random string; `openssl rand -hex 32` makes one.
-
-Open **http://localhost:3000**. The database starts empty and the migrations run automatically.
-
-**First run: how the first account becomes HR.** While no HR exists, the Register page says so. The first account you create becomes **HR**. Everyone who registers after that is an **employee** and goes straight to My leave. HR can then set their department on the People page.
-
-**Demo data (optional).** To replace everything with a demo company:
+Open `.env` and set `JWT_SECRET` to a long random string (`openssl rand -hex 32` makes one). Then:
 
 ```bash
-make seed
+make up      # docker compose up --build -d
+make seed    # loads the demo company (replaces all existing data)
 ```
 
-This is the same as `docker compose exec backend /app/leavedesk seed --reset`. Every demo password is `password123`.
+Open **http://localhost:3000** and sign in. Every demo password is `password123`.
 
 | Role | Email | Notes |
 |---|---|---|
@@ -78,134 +71,137 @@ This is the same as `docker compose exec backend /app/leavedesk seed --reset`. E
 | Employee | `nusrat.j@company.test` | 8 days available, a pending request for 04–08 Oct, and a rejected request with a PDF |
 | Employee | `rakib.h@company.test` | Joined this week, no leave history yet |
 
-The seed also creates 12 more employees in 7 departments. The week of 04–08 Oct 2026 is busy.
+The seed also creates 13 more employees in 7 departments. The week of 04–08 Oct 2026 is busy.
 
-**Who is HR.** Everyone in the **Human Resources** department (or one named "HR") is HR and sees the HR dashboard. When HR moves someone into that department on the People page, they become HR on their next request; moving them out makes them an employee again. The last HR can't be moved out. The first account and anyone promoted from the command line stay HR in any department:
+**Without the demo data**, the database starts empty. While no HR exists, the Register page says so, and the first account created becomes HR. Everyone after that is an employee.
+
+**Promoting someone to HR.** Moving a person into the Human Resources department on the People page makes them HR, and moving them out makes them an employee again. The last HR can't be moved out. You can also use the command line:
 
 ```bash
 docker compose exec backend /app/leavedesk promote --email someone@company.test
 docker compose exec backend /app/leavedesk demote --email someone@company.test
 ```
 
-`demote` refuses to remove the last HR.
+`demote` refuses to remove the last HR. Other commands: `make down` stops the stack, `make logs` follows the API log, and `make reset` deletes the database and uploaded files.
 
-**Other commands**
+## Tech stack and why
 
-| Command | What it does |
-|---|---|
-| `make test` | `go vet` and the Go tests, run in a Go container |
-| `cd frontend && npm test` | The frontend unit tests (helpers, hooks, components and the auth pages), using Node's built-in test runner |
-| `make e2e` | Browser end-to-end tests (Playwright, using your installed Chrome) against a separate stack on :3100 with its own freshly seeded database |
-| `make e2e-down` | Deletes the e2e stack and its database |
-| `cd frontend && npm run e2e:report` | Opens the report of the last e2e run, with traces and screenshots of any failure |
-| `make logs` | Follows the API's JSON request log |
-| `make reset` | `docker compose down -v`, which deletes the database and uploaded files |
-
-**Development without Docker for the UI:** run `cd frontend && npm install`, then `API_PROXY=http://localhost:3000 npm run dev` while the stack runs. Vite proxies `/api` to it, just as nginx does.
-
-### Google sign-in (optional)
-
-Email and password always work. The "Continue with Google" button appears only when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set; leave either empty to turn it off.
-
-**1. Google Cloud Console** (Google Auth Platform, or APIs & Services → Credentials):
-
-1. **OAuth consent screen.** User type **External**, publishing status **Testing**. Under **Audience → Test users**, add every Google account that should be able to sign in.
-2. **Clients → Create client → Web application.**
-   - Authorised JavaScript origins: `http://localhost:3000`
-   - Authorised redirect URIs: `http://localhost:3000/api/auth/google/callback`
-
-   Save. Changes can take a few minutes to apply. If the redirect URI is missing or different, Google shows `redirect_uri_mismatch`.
-3. Copy the client ID and secret. Keep the downloaded `client_secret_*.json` outside the repo folder and never commit it.
-
-The app asks only for `openid email profile`, which need no Google review.
-
-**2. `.env`** (git-ignored; these values never go in the code or a commit):
-
-```bash
-GOOGLE_CLIENT_ID=<client ID>
-GOOGLE_CLIENT_SECRET=<client secret>
-GOOGLE_REDIRECT_URL=http://localhost:3000/api/auth/google/callback
-ALLOWED_EMAIL_DOMAINS=
-```
-
-Then run `docker compose up --build` (or `docker compose up -d --force-recreate backend`). `GET /api/auth/bootstrap` returns `"google": true` once both values are set.
-
-**3. What people see**
-
-- **Existing account.** The first Google sign-in links the Google account to the account with the same email; later sign-ins match on Google's account id. The person lands on their home page.
-- **New person.** Google doesn't share a date of birth, so after Google the person lands on "Create an account" with first name, last name and email filled in (email locked) and no password fields. They enter only their date of birth (18+). The first account ever still becomes HR. The account has no password; the Profile page offers "Set a password", and until then email/password sign-in fails with the usual "Wrong email or password."
-- **Cancel** on Google's screen returns to Sign in with "Google sign-in was cancelled." Other failures (expired attempt, unverified Google email, wrong domain, an email already linked to a different Google account) each show their own message there.
-
-**Dev mode (port 5173).** Google sends the browser back to `GOOGLE_REDIRECT_URL`, so it must match the port you have open. Set `GOOGLE_REDIRECT_URL=http://localhost:5173/api/auth/google/callback` in `.env`, add that URI under "Authorised redirect URIs" (and `http://localhost:5173` under "Authorised JavaScript origins"), recreate the backend and run `API_PROXY=http://localhost:3000 npm run dev`. Vite forwards the callback to the API, and the API's redirects are relative, so you stay on 5173. Switch back to the `:3000` URI when you use the Docker UI again.
-
-**Limitations**
-
-- In **Testing** mode only the listed test users can sign in; anyone else gets Google's "Access blocked" screen. Publishing the app to production removes the list.
-- `ALLOWED_EMAIL_DOMAINS` also applies to Google: the ID token's `hd` (hosted domain) claim must be in the list. Personal Gmail accounts have no `hd`, so they are rejected when the list is set. Leave it empty to test with Gmail.
-
-How the flow works, and why the ID token is verified on the server, is in [docs/EXPLANATION.md](docs/EXPLANATION.md#9-google-sign-in).
-
-## 4. Architecture
-
-```
-Browser ──► nginx  (frontend container, published as :3000)
-             ├── /         React build: index.html, hashed JS/CSS, SPA fallback
-             └── /api/*    proxy_pass http://backend:8080   (same origin, so the cookie just works)
-                              │
-                        Go API  (backend container, :8080, not published)
-             log → recover → session cookie → reload user → role check → handler
-                              │
-                        service  (account · leave · hr · files)   ← all business rules
-                              │
-                        store    (pgx, hand-written SQL)
-                              │                        ╲
-                        PostgreSQL (db, volume pgdata)   files on volume uploads (/data/uploads)
-```
-
-**A request's journey**, using HR approving Nusrat's request (id 2041). Request ids appear only in URLs, never on screen:
-
-1. The browser sends `POST /api/requests/2041/decision` with the `ld_session` cookie. JavaScript never sees the token.
-2. nginx forwards the request to `backend:8080`.
-3. The middleware verifies the JWT, then **reloads the user** from Postgres (a deleted account or a changed role applies at once). It rejects non-HR users with `403 FORBIDDEN`.
-4. The handler decodes `{status, note}` and calls `leave.Service.Decide`.
-5. The service applies `CanDecide`: HR only, not your own request (`SELF_APPROVAL`), and only while the request is pending.
-6. The store runs `UPDATE … WHERE id=$1 AND status='pending'`. If someone else decided first, zero rows change and the result is `409 NOT_PENDING`.
-7. The handler returns JSON. The UI refreshes every list, balance and calendar that shows this request.
-
-## 5. Inner workings (summary)
-
-- **Working days:** the dates from start to end that are not Friday or Saturday. The same function exists in Go (`leave.WorkingDays`) and TypeScript (`lib/leave.ts`), with the same test cases on both sides.
-- **Balance maths:** `available = limit − used(approved) − pending`. The limit is the policy default from config unless HR set an override for that person and year. A request counts against the year it starts in.
-- **Validation order:** type → both dates → start ≤ end → at least one working day → reason length → overlap with your own pending or approved leave → enough balance. The error messages are exact, for example `Not enough Annual leave: 6 days available, 9 requested.`
-- **Concurrency:** create and edit run in a transaction holding a per-user advisory lock, so two simultaneous submissions can't both pass the checks. Decisions are atomic on `status='pending'`. The first-HR check runs under its own advisory lock.
-- **First account = HR:** registration takes an advisory lock, checks whether any HR exists, and makes the new account HR only if none does. Two people registering at the same moment can't both become HR.
-- **Undo:** there is no undo endpoint. The UI holds a decision for 5 seconds before sending it. If the tab closes, it is sent with `fetch keepalive`.
-
-The details are in [docs/EXPLANATION.md](docs/EXPLANATION.md).
-
-## 6. Docker
-
-| Service | Image | Purpose |
+| Layer | Choice | Why |
 |---|---|---|
-| `db` | `postgres:16-alpine` | The database. Data lives in the `pgdata` volume. Its healthcheck gates the backend |
-| `backend` | multi-stage build: `golang:1.23-alpine` → `alpine:3.20` (non-root) | The `leavedesk` binary. Runs migrations on start and stores files in the `uploads` volume |
-| `frontend` | multi-stage build: `node:20-alpine` (`tsc -b && vite build`) → `nginx:alpine` | Serves the UI and proxies `/api/`. The only published port, `3000:80` |
+| API | Go 1.23, standard library `net/http` | Go 1.22 route patterns (`POST /api/requests/{id}/decision`) cover every route, so there is no framework to learn |
+| Database | PostgreSQL 16, `pgx/v5` v5.7.1, hand-written SQL | Foreign keys, CHECK constraints, date maths and advisory locks for the concurrency rules |
+| Migrations | `golang-migrate/v4` v4.18.1, SQL embedded in the binary | They run on startup, so there are no manual steps |
+| Auth | bcrypt (`x/crypto` v0.28.0), `golang-jwt/jwt/v5` v5.3.1 (HS256), Google OpenID Connect | Salted password hashes, and a stateless signed session in an httpOnly cookie |
+| UI | React 19.2, TypeScript 7 (strict), React Router 7, Vite 8 | Typed components and client-side routing with a fast build |
+| Server data | TanStack Query 5, TanStack Table 8 | Caching, refetching after changes, and server-paged tables without hand-written loading code |
+| Components | shadcn/ui 4 on Radix, Tailwind CSS 4, lucide icons, Geist font | Accessible building blocks; every colour is a light/dark design token |
+| Dates, PDF, toasts | date-fns 4, react-pdf 11, sonner 2 | Fri/Sat working-day maths, an in-page PDF preview, and the Undo toast |
+| Serving | nginx (`nginx:alpine`), Node 20 build image | Serves the built UI and proxies `/api` on the same origin, so no CORS is needed |
+| Tests | Go `testing`, Node's built-in test runner, Playwright 1.63 | Unit tests with no extra framework, and browser tests in real Chrome |
 
-nginx allows 6 MB request bodies for 5 MB attachments. It re-resolves `backend` through Docker's DNS on every request, and serves `.mjs` files as JavaScript for the PDF worker.
+## Architecture
 
-## 7. Known limitations
+```mermaid
+flowchart LR
+    B["Browser<br/>React app"] -->|":3000 (only published port)"| N["nginx<br/>frontend container"]
+    N -->|"/api/* proxy"| G["Go API :8080<br/>backend container"]
+    G -->|"SQL (pgx pool)"| P[("PostgreSQL 16<br/>pgdata volume")]
+    G -->|"read / write"| U[("uploads volume<br/>/data/uploads")]
+```
+
+How one request travels, for example HR approving a request:
+
+1. The browser sends `POST /api/requests/{id}/decision` with the `ld_session` cookie; JavaScript never sees the token.
+2. nginx forwards it to the Go API, which logs it, verifies the cookie and **reloads the user from Postgres**, so a role change or deleted account applies at once. Non-HR users get `403`.
+3. The handler decodes the body and calls `leave.Service.Decide`, which checks the rules: HR only, not your own request, and still pending.
+4. The store runs `UPDATE … WHERE id = $1 AND status = 'pending'`. If another HR decided first, nothing changes and the answer is `409 NOT_PENDING`.
+5. The API returns JSON, and the UI refreshes every list, balance and calendar that shows this request.
+
+| Container | Image | Job |
+|---|---|---|
+| `db` | `postgres:16-alpine` | The database; its healthcheck gates the backend |
+| `backend` | `golang:1.23-alpine` build → `alpine:3.20`, non-root | The `leavedesk` binary: runs migrations on start, stores files in the `uploads` volume |
+| `frontend` | `node:20-alpine` build → `nginx:alpine` | Serves the UI and proxies `/api/`; nginx allows 6 MB bodies for 5 MB attachments |
+
+The full explanation (components, middleware, errors, database, Docker) is in [docs/EXPLANATION.md](docs/EXPLANATION.md).
+
+## Business rules
+
+- **Working days.** A request counts the days from start to end that are not Friday or Saturday. The same function exists in Go (`leave.WorkingDays`) and TypeScript (`lib/leave.ts`), with the same test cases.
+- **Balance maths.** `available = limit − used (approved) − pending`. The limit is the default from `.env` unless HR set one for that person and year. A request counts against the year it starts in.
+- **Validation order** (the first failure wins): type → both dates → start ≤ end → at least one working day → reason length → no overlap with your own pending or approved leave → enough balance. Messages are exact, for example `Not enough Annual leave: 6 days available, 9 requested.`
+- **Self-approval.** Nobody decides their own request. HR's own requests appear in Pending with the buttons disabled and wait for another HR.
+- **First account becomes HR.** Registration takes an advisory lock, checks whether any HR exists, and makes the new account HR only if none does, so two people signing up at once can't both become HR.
+- **Only pending requests** can be edited, cancelled or decided. Create and edit run under a per-user lock, so two submissions at the same moment can't both pass the balance check.
+
+## Google sign-in (optional)
+
+Email and password always work. The "Continue with Google" button appears only when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set.
+
+1. In Google Cloud Console, set up the OAuth consent screen as **External** in **Testing** mode and add your test users. Then create a **Web application** client with:
+   - Authorised JavaScript origin: `http://localhost:3000`
+   - Authorised redirect URI: `http://localhost:3000/api/auth/google/callback`
+
+   Keep the downloaded `client_secret_*.json` outside the repo.
+2. Put the values in `.env`, which git ignores:
+
+   ```bash
+   GOOGLE_CLIENT_ID=<client ID>
+   GOOGLE_CLIENT_SECRET=<client secret>
+   GOOGLE_REDIRECT_URL=http://localhost:3000/api/auth/google/callback
+   ALLOWED_EMAIL_DOMAINS=
+   ```
+
+3. Run `docker compose up -d --force-recreate backend`.
+
+An existing account with the same email is linked on its first Google sign-in. A new person finishes sign-up by entering only a date of birth, because Google doesn't share it. In Testing mode, only listed test users can sign in. If `ALLOWED_EMAIL_DOMAINS` is set, personal Gmail accounts are refused, because they have no hosted domain.
+
+For `npm run dev` on port 5173, register `http://localhost:5173/api/auth/google/callback` as well and set `GOOGLE_REDIRECT_URL` to it. The whole flow is explained in [docs/EXPLANATION.md](docs/EXPLANATION.md#9-google-sign-in).
+
+## Testing
+
+| Command | What it covers |
+|---|---|
+| `make test` | `go vet` and the Go unit tests, run in a Go container: rules, services, sessions, config, files and the HTTP layer with fake stores |
+| `cd frontend && npm test` | Frontend unit tests with Node's built-in runner: date and balance helpers, hooks, the Undo store, components and the auth pages |
+| `make e2e` | Browser tests with Playwright in your installed Chrome, against a separate stack on :3100 with a freshly seeded database. Your own data is never touched |
+| `make e2e-down` | Deletes the e2e stack and its database |
+
+`cd frontend && npm run e2e:report` opens the last e2e report, with a trace and screenshot for any failure.
+
+## Project structure
+
+```
+backend/           Go API: cmd/leavedesk (serve, seed, promote, demote), internal/* packages, SQL migrations
+frontend/          React app: src/ (api, components, features, layouts, lib), e2e/ Playwright tests, nginx.conf
+docs/              EXPLANATION.md and the README screenshots
+tools/screenshots/ The script that takes those screenshots from the running app
+docker-compose.yml The three containers: db, backend, frontend
+Makefile           Shortcuts: up, down, seed, test, e2e, screenshots
+.env.example       Every setting, with comments; copy it to .env
+```
+
+## Known limitations
 
 - There are no email notifications; people check the app for decisions.
-- There is no deactivation or offboarding flow, and there is no approval step for new accounts: anyone who can reach the sign-up page can create an employee account. Set `ALLOWED_EMAIL_DOMAINS` to restrict sign-ups to the company's email domain.
-- HR access follows the Human Resources department (or the CLI); there is no separate role switch in the UI.
-- There is a single approval step (employee → HR) with no team-lead step. With only one HR account, HR's own requests can't be decided until a second HR exists.
-- There is no password reset. By design HR cannot change passwords, so a forgotten password needs a database operator. That is a gap to close before production.
+- There is no deactivation or offboarding flow, and no approval step for new accounts. Set `ALLOWED_EMAIL_DOMAINS` to restrict sign-ups to the company's domain.
+- There is a single approval step (employee → HR), with no team-lead step. With only one HR, HR's own requests wait until a second HR exists.
+- There is no password reset. By design HR can't change passwords, so a forgotten password needs a database operator.
+- There are no public holidays: only Fridays and Saturdays are skipped.
 - A request that crosses New Year counts entirely against the year it starts in.
-- The audit log is written for every HR change but is not shown in the UI yet.
+- The audit log is written for every HR change but isn't shown in the UI yet.
+
+## Regenerating screenshots
+
+```bash
+make up && make seed && make screenshots
+```
+
+`make seed` replaces all data with the demo company. To keep your own data, point the script at another stack that has the demo data: `BASE_URL=http://localhost:3100 make screenshots`. The script only opens pages, so running it twice gives identical images.
 
 ## API reference
 
-All endpoints are under `/api`. Errors look like `{"error": "CODE", "message": "human text"}`, with status 400 (validation), 401, 403, 404 or 409 (conflict).
+All endpoints are under `/api`. Errors look like `{"error": "CODE", "message": "human text"}`, with status 400 (validation), 401, 403, 404, 405 (wrong method) or 409 (conflict).
 
 | Method & path | Who |
 |---|---|
@@ -219,4 +215,4 @@ All endpoints are under `/api`. Errors look like `{"error": "CODE", "message": "
 | `GET /calendar?month=2026-10&department=&type=&includePending=` | signed in (never returns balances) |
 | `GET /hr/employees` · `GET /hr/employees/{id}` · `PATCH /hr/employees/{id}` · `GET /hr/employees/export.csv` | HR |
 | `GET /departments` (signed in) · `POST /departments` (HR) | |
-| `POST /files` · `GET /files/{id}` | signed in; files are served to the owner or HR, avatars to anyone signed in |
+| `POST /files` · `GET /files/{id}` | signed in; files go to the owner or HR, avatars to anyone signed in |

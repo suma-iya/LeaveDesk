@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { addMonths, format, isSameMonth, parseISO, startOfMonth } from 'date-fns'
-import { CalendarDays, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { addMonths, format, isSameMonth, isValid, parseISO, startOfMonth } from 'date-fns'
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { api } from '@/api'
 import { keys, useDepartments } from '@/api/queries'
 import { Avatar } from '@/components/Avatar'
@@ -23,12 +24,44 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const HEAT_BG = ['bg-heat-0', 'bg-heat-1', 'bg-heat-2', 'bg-heat-3'] as const
 const heat = (count: number) => HEAT_BG[Math.min(count, 3)]
 
-/** The Team calendar: title and X, the month with filters, and the selected day beside it. */
-export function TeamCalendar({ onClose }: { onClose: () => void }) {
+const MONTH = /^\d{4}-\d{2}$/
+const DAY = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * The month and the selected day live in the URL (?month=2026-09&day=2026-09-28),
+ * so a refresh or the browser's back button keeps them. Without them: the
+ * current month, with today selected. Changes replace the history entry, so
+ * Back still leaves the calendar.
+ */
+function useMonthAndDay() {
+  const [params, setParams] = useSearchParams()
+  const location = useLocation()
+  const monthParam = params.get('month') ?? ''
+  const dayParam = params.get('day') ?? ''
+  const parsedMonth = MONTH.test(monthParam) ? parseISO(`${monthParam}-01`) : null
+  const parsedDay = DAY.test(dayParam) ? parseISO(dayParam) : null
+  const month = parsedMonth && isValid(parsedMonth) ? parsedMonth : startOfMonth(new Date())
+  const selected = parsedDay && isValid(parsedDay) ? dayParam : toISODate(new Date())
+  const update = (next: { month?: Date; day?: string }) =>
+    setParams((p) => {
+      if (next.month) p.set('month', monthKey(next.month))
+      if (next.day) p.set('day', next.day)
+      return p
+    }, { replace: true, state: location.state })
+  return {
+    month,
+    selected,
+    setMonth: (change: (m: Date) => Date) => update({ month: change(month) }),
+    setSelected: (day: string) => update({ day }),
+    goToToday: () => update({ month: startOfMonth(new Date()), day: toISODate(new Date()) }),
+  }
+}
+
+/** The calendar card (month, filters, legend) and the selected-day panel. */
+export function TeamCalendarView() {
   const isMobile = useIsMobile()
   const departments = useDepartments().data ?? []
-  const [month, setMonth] = useState(() => startOfMonth(new Date()))
-  const [selected, setSelected] = useState(() => toISODate(new Date()))
+  const { month, selected, setMonth, setSelected, goToToday } = useMonthAndDay()
   const [department, setDepartment] = useState(ALL)
   const [type, setType] = useState(ALL)
   const [includePending, setIncludePending] = useState(true)
@@ -62,22 +95,13 @@ export function TeamCalendar({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      <div className="flex items-start gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 id="calendar-title" className="text-[22px] font-bold tracking-[-0.02em]">Team calendar</h1>
-          {/* Screen readers still get a description; nothing extra on screen. */}
-          <p className="sr-only">Who is away on each day of the month.</p>
-        </div>
-        <IconButton icon={X} label="Close calendar" variant="secondary" onClick={onClose} />
-      </div>
-
       <div className={cn('flex min-h-0 gap-5', isMobile && 'flex-col')}>
         <section className={cn('rounded-card border bg-surface', isMobile ? 'p-3' : 'w-[940px] shrink-0 p-5')}>
           <div className="mb-4 flex flex-wrap items-center gap-2">
             {monthNav}
             {!isMobile && (
               <>
-                <AppButton icon={CalendarDays} label="Today" onClick={() => { setMonth(startOfMonth(new Date())); setSelected(toISODate(new Date())) }} />
+                <AppButton icon={CalendarDays} label="Today" onClick={goToToday} />
                 <span className="flex-1" />
                 <FilterSelect className="h-9! w-[160px]" filter={{ kind: 'select', id: 'department', label: 'Department', value: department,
                   defaultValue: ALL, options: optionsFrom('All departments', departments.map((d) => ({ value: String(d.id), label: d.name }))), onChange: setDepartment }} />

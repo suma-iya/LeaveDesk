@@ -1,10 +1,12 @@
 import { useCallback, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { X } from 'lucide-react'
+import { IconButton } from '@/components/AppButton'
 import { useUser } from '@/features/auth/AuthProvider'
 import { homeFor } from '@/features/auth/homeFor'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { cn } from '@/lib/utils'
-import { TeamCalendar } from './TeamCalendar'
+import { TeamCalendarView } from './TeamCalendarView'
 
 /**
  * /calendar, opened from the calendar icon in list page headers. It looks
@@ -38,7 +40,14 @@ export function CalendarPage() {
       <main aria-labelledby="calendar-title"
         className={cn('fixed flex flex-col gap-4 overflow-y-auto bg-background text-sm text-foreground ring-1 ring-foreground/10 outline-none',
           isMobile ? 'inset-0 h-svh w-full p-4' : 'inset-5 rounded-dialog px-6 py-[22px]')}>
-        <TeamCalendar onClose={close} />
+        <div className="flex items-start gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 id="calendar-title" className="text-[22px] font-bold tracking-[-0.02em]">Team calendar</h1>
+            <p className="sr-only">Who is away on each day of the month.</p>
+          </div>
+          <IconButton icon={X} label="Close calendar" variant="secondary" onClick={close} />
+        </div>
+        <TeamCalendarView />
       </main>
     </div>
   )

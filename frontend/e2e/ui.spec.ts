@@ -158,4 +158,20 @@ test.describe('mobile (390px)', () => {
     await expect(page.getByRole('button', { name: 'Collapse sidebar' })).toHaveCount(0)
     await expect(nav.getByRole('link', { name: /Pending/ })).toBeVisible()
   })
+
+  test('the calendar is a normal page: compact grid, day list below, tab bar visible', async ({ page }) => {
+    await signIn(page, HR.email, '/hr/pending')
+    await page.locator('main header').first().getByRole('link', { name: 'Team calendar' }).click()
+    await expect(page).toHaveURL(/\/calendar/)
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    const nav = (await page.getByRole('navigation', { name: 'Main' }).boundingBox())!
+    expect(nav.y + nav.height).toBe(844) // the bottom tab bar stays
+    const grid = page.getByRole('grid')
+    const cell = (await grid.getByRole('button').first().boundingBox())!
+    expect(Math.round(cell.height)).toBe(50) // the compact month grid
+    const panel = (await page.getByText('Selected day').boundingBox())!
+    const gridBox = (await grid.boundingBox())!
+    expect(panel.y).toBeGreaterThan(gridBox.y + gridBox.height) // the day list sits below
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
+  })
 })

@@ -65,7 +65,10 @@ test.describe('registration', () => {
     const eighteenYearsAgoTomorrow = new Date()
     eighteenYearsAgoTomorrow.setFullYear(eighteenYearsAgoTomorrow.getFullYear() - 18)
     eighteenYearsAgoTomorrow.setDate(eighteenYearsAgoTomorrow.getDate() + 1)
-    await page.getByLabel('Date of birth').fill(eighteenYearsAgoTomorrow.toISOString().slice(0, 10))
+    // Local date, not toISOString(): that is UTC and can be a day off near midnight.
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const d = eighteenYearsAgoTomorrow
+    await page.getByLabel('Date of birth').fill(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
     await expect(page.getByText('You must be at least 18 years old.')).toBeVisible()
   })
 

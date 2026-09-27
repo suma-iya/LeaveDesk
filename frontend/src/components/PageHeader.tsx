@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 
 interface PageHeaderProps {
   title: ReactNode
-  /** List pages: Request leave · Calendar · Export (in that order). */
+  /** List pages: Request leave · calendar · theme · Export (in that order). */
   actions?: ReactNode
   /** Detail and form pages: back icon button + breadcrumb, 22px title. */
   back?: { to: string; label: string }

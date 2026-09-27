@@ -58,6 +58,52 @@ test.describe('sidebar', () => {
   })
 })
 
+test.describe('navigation', () => {
+  test('list items show their count, from the same data as the page', async ({ page }) => {
+    await signIn(page, HR.email, '/hr/pending')
+    const nav = page.getByRole('navigation', { name: 'Main' })
+    const pendingTotal = (await (await page.request.get('/api/requests?scope=all&status=pending&pageSize=1')).json()).total
+    const allTotal = (await (await page.request.get('/api/requests?scope=all&pageSize=1')).json()).total
+    const people = (await (await page.request.get('/api/hr/employees?pageSize=1')).json()).total
+    await expect(nav.getByRole('link', { name: /^Pending/ })).toContainText(String(pendingTotal))
+    await expect(nav.getByRole('link', { name: /^All/ })).toContainText(String(allTotal))
+    await expect(nav.getByRole('link', { name: /^People/ })).toContainText(String(people))
+  })
+
+  test('the header calendar icon opens the calendar page; X and Esc go back', async ({ page }) => {
+    await signIn(page, NUSRAT.email, '/me')
+    const header = page.locator('main header').first()
+    const labels = await header.locator('a, button').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') || e.textContent?.trim()))
+    expect(labels.slice(0, 3)).toEqual(['Request leave', 'Team calendar', 'Switch to dark theme'])
+
+    await header.getByRole('link', { name: 'Team calendar' }).click()
+    await expect(page).toHaveURL(/\/calendar$/)
+    await expect(page.getByRole('heading', { name: 'Team calendar' })).toBeVisible()
+    await expect(page.getByRole('grid')).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0) // full screen, like the old overlay
+    await page.getByRole('button', { name: 'Close calendar' }).click()
+    await expect(page).toHaveURL(/\/me$/)
+
+    await header.getByRole('link', { name: 'Team calendar' }).click()
+    await page.getByRole('combobox', { name: 'Department' }).click()
+    await page.keyboard.press('Escape') // closes the dropdown only
+    await expect(page).toHaveURL(/\/calendar$/)
+    await page.keyboard.press('Escape')
+    await expect(page).toHaveURL(/\/me$/)
+  })
+
+  test('tables page with chevron icon buttons', async ({ page }) => {
+    await signIn(page, HR.email, '/hr/requests?status=all')
+    const prev = page.getByRole('button', { name: 'Previous page' })
+    const next = page.getByRole('button', { name: 'Next page' })
+    await expect(page.getByRole('button', { name: /^(Previous|Next)$/ })).toHaveCount(0)
+    await expect(prev).toBeDisabled()
+    await next.click()
+    await expect(page.getByText(/^Page 2 of \d+$/)).toBeVisible()
+    await expect(prev).toBeEnabled()
+  })
+})
+
 test('the theme icon switches to dark and the choice survives a reload', async ({ page }) => {
   await signIn(page, NUSRAT.email, '/me')
   await page.evaluate(() => localStorage.setItem('leavedesk-theme', 'light'))

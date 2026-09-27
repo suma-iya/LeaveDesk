@@ -7,11 +7,9 @@ import { keys, useDepartments } from '@/api/queries'
 import { Avatar } from '@/components/Avatar'
 import { AppButton, IconButton } from '@/components/AppButton'
 import { FilterSelect } from '@/components/Filters'
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import { useCalendarOverlay } from '@/layouts/calendarOverlay'
 import { formatMonth, monthKey, toISODate } from '@/lib/dates'
 import { ALL, optionsFrom } from '@/lib/filters'
 import { fullName } from '@/lib/format'
@@ -25,26 +23,8 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const HEAT_BG = ['bg-heat-0', 'bg-heat-1', 'bg-heat-2', 'bg-heat-3'] as const
 const heat = (count: number) => HEAT_BG[Math.min(count, 3)]
 
-/** The Team calendar overlay. Esc, the X or the header button closes it. */
-export function TeamCalendarDialog() {
-  const { open, setOpen } = useCalendarOverlay()
-  const isMobile = useIsMobile()
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent
-        showCloseButton={false}
-        className={cn(
-          'flex max-w-none translate-x-0 translate-y-0 flex-col gap-4 overflow-y-auto bg-background text-foreground sm:max-w-none',
-          isMobile ? 'inset-0 top-0 left-0 h-svh w-full rounded-none p-4' : 'inset-5 top-5 left-5 w-auto rounded-dialog px-6 py-[22px]',
-        )}
-      >
-        {open && <CalendarBody onClose={() => setOpen(false)} />}
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function CalendarBody({ onClose }: { onClose: () => void }) {
+/** The Team calendar: title and X, the month with filters, and the selected day beside it. */
+export function TeamCalendar({ onClose }: { onClose: () => void }) {
   const isMobile = useIsMobile()
   const departments = useDepartments().data ?? []
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
@@ -84,9 +64,9 @@ function CalendarBody({ onClose }: { onClose: () => void }) {
     <>
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
-          <DialogTitle className="text-[22px] font-bold tracking-[-0.02em]">Team calendar</DialogTitle>
+          <h1 id="calendar-title" className="text-[22px] font-bold tracking-[-0.02em]">Team calendar</h1>
           {/* Screen readers still get a description; nothing extra on screen. */}
-          <DialogDescription className="sr-only">Who is away on each day of the month.</DialogDescription>
+          <p className="sr-only">Who is away on each day of the month.</p>
         </div>
         <IconButton icon={X} label="Close calendar" variant="secondary" onClick={onClose} />
       </div>

@@ -101,12 +101,14 @@ test('HR on desktop: 02–06', async ({ browser }) => {
   await expect(page.getByText('Decision', { exact: true })).toBeVisible()
   await shot(page, '03-hr-review')
 
-  // The team calendar overlay on the Pending page, with Wed 07 Oct selected.
+  // The Team calendar, opened from the Pending page's header icon, with Wed 07 Oct selected.
   await page.goto('/hr/pending')
-  await page.getByRole('button', { name: 'Team calendar' }).click()
+  await page.getByRole('link', { name: 'Team calendar' }).click()
   await page.getByRole('grid', { name: 'October 2026' }).getByRole('button', { name: /^October 7,/ }).click()
+  await expect(page.getByText('Wednesday, 7 October 2026')).toBeVisible()
   await shot(page, '04-team-calendar')
-  await page.getByRole('button', { name: 'Close calendar' }).click() // it stays open across pages otherwise
+  await page.getByRole('button', { name: 'Close calendar' }).click()
+  await expect(page).toHaveURL(/\/hr\/pending$/)
 
   await page.goto('/hr/people')
   await expect(page.getByRole('link', { name: /^Open / }).first()).toBeVisible()

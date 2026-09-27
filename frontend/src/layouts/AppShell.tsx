@@ -6,14 +6,12 @@ import { Logo } from '@/components/Logo'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useUser } from '@/features/auth/AuthProvider'
 import { homeFor } from '@/features/auth/homeFor'
-import { TeamCalendarDialog } from '@/features/calendar/TeamCalendarDialog'
 import { useSidebarState } from '@/lib/sidebar'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { cn } from '@/lib/utils'
 import { AccountMenu } from './AccountMenu'
-import { CalendarOverlayProvider } from './calendarOverlay'
-import { NAV, type NavItem } from './nav'
-import { useNewItems } from './useNewItems'
+import { NAV, type NavCount, type NavItem } from './nav'
+import { useNavCounts } from './useNavCounts'
 
 // Desktop sidebar widths. --sidebar-w is set on the shell's root and used by
 // both the <nav> and the <main> offset, so they always move together.
@@ -23,7 +21,9 @@ const SIDEBAR_W = { expanded: '240px', collapsed: '64px' }
 const SIDEBAR_PAD = '12px'
 const NAV_ID = 'app-sidebar'
 // What each count means, for screen readers: "23 pending".
-const COUNT_NOUN: Record<NonNullable<NavItem['dot']>, string> = { pendingRequests: 'pending' }
+const COUNT_NOUN: Record<NavCount, string> = {
+  pendingRequests: 'pending', approvedRequests: 'approved', allRequests: 'requests', people: 'people', history: 'decided',
+}
 
 type Layout = 'mobile' | 'expanded' | 'collapsed'
 
@@ -33,7 +33,7 @@ export function AppShell() {
   const isMobile = useIsMobile()
   const location = useLocation()
   const status = new URLSearchParams(location.search).get('status')
-  const counts = useNewItems(user.role === 'hr')
+  const counts = useNavCounts(user.role)
   const items = NAV[user.role]
   const sidebar = useSidebarState()
   const collapsed = sidebar.collapsed && !isMobile
@@ -53,7 +53,7 @@ export function AppShell() {
           : <p className="px-2.5 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{item.section}</p>
       )}
       <RailLink item={item} active={item.isActive(location.pathname, status)} layout={layout}
-        count={item.dot ? counts[item.dot] : 0} countNoun={item.dot ? COUNT_NOUN[item.dot] : ''} />
+        count={item.count ? counts[item.count] : 0} countNoun={item.count ? COUNT_NOUN[item.count] : ''} />
     </Fragment>
   ))
 
@@ -64,38 +64,35 @@ export function AppShell() {
   )
 
   return (
-    <CalendarOverlayProvider>
-      <div className="min-h-svh bg-background" style={shellStyle}>
-        {isMobile ? (
-          <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 flex h-[72px] items-center justify-around border-t bg-rail px-2 pb-[env(safe-area-inset-bottom)]">
-            {links}
-            <AccountMenu layout="mobile" />
-          </nav>
-        ) : (
-          <nav id={NAV_ID} aria-label="Main"
-            className="fixed inset-y-0 left-0 z-30 flex w-[var(--sidebar-w)] flex-col overflow-x-hidden border-r bg-rail px-[var(--sidebar-pad)] py-4 whitespace-nowrap transition-[width] duration-200 motion-reduce:transition-none">
-            <div className={cn('mb-6 flex', collapsed ? 'flex-col items-center gap-2' : 'h-10 items-center justify-between')}>
-              {collapsed ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>{home}</TooltipTrigger>
-                  <TooltipContent side="right">LeaveDesk home</TooltipContent>
-                </Tooltip>
-              ) : home}
-              <AppButton shape="icon" variant="ghost" icon={collapsed ? PanelLeftOpen : PanelLeftClose}
-                label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                aria-expanded={!collapsed} aria-controls={NAV_ID} onClick={sidebar.toggle} />
-            </div>
-            <div className="flex flex-col gap-1">{links}</div>
-            <AccountMenu layout={collapsed ? 'collapsed' : 'expanded'} className={cn('mt-auto', collapsed && 'self-center')} />
-          </nav>
-        )}
-        <main className={cn('mx-auto flex max-w-[1600px] flex-col',
-          isMobile ? 'gap-4 px-4 pt-4 pb-24' : 'ml-[var(--sidebar-w)] gap-5 px-10 py-7 transition-[margin] duration-200 motion-reduce:transition-none')}>
-          <Outlet />
-        </main>
-        <TeamCalendarDialog />
-      </div>
-    </CalendarOverlayProvider>
+    <div className="min-h-svh bg-background" style={shellStyle}>
+      {isMobile ? (
+        <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 flex h-[72px] items-center justify-around border-t bg-rail px-2 pb-[env(safe-area-inset-bottom)]">
+          {links}
+          <AccountMenu layout="mobile" />
+        </nav>
+      ) : (
+        <nav id={NAV_ID} aria-label="Main"
+          className="fixed inset-y-0 left-0 z-30 flex w-[var(--sidebar-w)] flex-col overflow-x-hidden border-r bg-rail px-[var(--sidebar-pad)] py-4 whitespace-nowrap transition-[width] duration-200 motion-reduce:transition-none">
+          <div className={cn('mb-6 flex', collapsed ? 'flex-col items-center gap-2' : 'h-10 items-center justify-between')}>
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>{home}</TooltipTrigger>
+                <TooltipContent side="right">LeaveDesk home</TooltipContent>
+              </Tooltip>
+            ) : home}
+            <AppButton shape="icon" variant="ghost" icon={collapsed ? PanelLeftOpen : PanelLeftClose}
+              label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!collapsed} aria-controls={NAV_ID} onClick={sidebar.toggle} />
+          </div>
+          <div className="flex flex-col gap-1">{links}</div>
+          <AccountMenu layout={collapsed ? 'collapsed' : 'expanded'} className={cn('mt-auto', collapsed && 'self-center')} />
+        </nav>
+      )}
+      <main className={cn('mx-auto flex max-w-[1600px] flex-col',
+        isMobile ? 'gap-4 px-4 pt-4 pb-24' : 'ml-[var(--sidebar-w)] gap-5 px-10 py-7 transition-[margin] duration-200 motion-reduce:transition-none')}>
+        <Outlet />
+      </main>
+    </div>
   )
 }
 
@@ -118,7 +115,8 @@ function useToggleShortcut(toggle: () => void, enabled: boolean) {
 /**
  * Expanded: a full-width 36px row, 18px icon beside the label, count pill on
  * the right. Collapsed: the icon alone in a 40×40 hit area with the label in
- * a tooltip; the count becomes a dot. Mobile: 64×58, icon over label.
+ * a tooltip; the count becomes a dot. Mobile: 64×58, icon over label, with
+ * the same dot. A count of 0 shows nothing.
  * Active = sunk + a 3px accent bar on the sidebar's edge (desktop).
  */
 function RailLink({ item, active, layout, count, countNoun }: {
@@ -142,10 +140,7 @@ function RailLink({ item, active, layout, count, countNoun }: {
     >
       <span className="relative">
         <Icon className={layout === 'mobile' ? 'size-5' : 'size-[18px]'} aria-hidden />
-        {count > 0 && layout === 'mobile' && (
-          <span className="absolute -top-0.5 -right-1 size-2 rounded-full bg-pending ring-2 ring-rail" aria-label="New" />
-        )}
-        {count > 0 && layout === 'collapsed' && (
+        {count > 0 && layout !== 'expanded' && (
           <span role="img" aria-label={countLabel} className="absolute -top-0.5 -right-1 size-2 rounded-full bg-pending ring-2 ring-rail" />
         )}
       </span>

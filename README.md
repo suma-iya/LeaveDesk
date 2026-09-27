@@ -10,7 +10,7 @@ A leave tracker for a small company: employees request leave on a calendar, HR a
 - **Requesting leave.** An employee picks dates on a calendar. Fridays and Saturdays are never counted, and the form shows the working days and the balance left before sending.
 - **Deciding.** HR approves or rejects from the Pending table or a review page, with an optional note. A toast offers **Undo** for 5 seconds.
 - **Balances.** Each person has a yearly allowance per type (Annual 16, Casual 3, Sick 3 by default). Approved days count as used, and waiting days as pending.
-- **Team view.** A calendar shows who is away each day, and every HR table exports to CSV.
+- **Team view.** The Team calendar (the calendar icon in each list page's header) shows who is away each day, and every HR table exports to CSV.
 - **People.** HR sets each person's department, salary (with history) and per-person leave limits. Every change is written to an audit log.
 - **Sign-in** with email and password, or optionally Google. The session is an httpOnly cookie, and the Go API enforces every rule.
 
@@ -24,12 +24,13 @@ A leave tracker for a small company: employees request leave on a calendar, HR a
 | **Attachments:** a PDF, PNG or JPG up to 5 MB, previewed in the page | **Review page:** employee card, "If approved: N days left", teammates away on the same dates, the attachment |
 | **Edit or cancel** a request while it is pending; **Request again** after a rejection | **Approved** and **All** tables with search and filters, and CSV **Export** |
 | **History** of decided requests with HR's note | **People:** department, salary with history, and per-person leave limits (never below the days already used) |
-| **Team calendar** showing who is away each day | The same calendar, filtered by department or leave type |
+| **Team calendar** (header icon) showing who is away each day | The same calendar, filtered by department or leave type |
 | **Profile:** photo (JPG or PNG up to 2 MB), name, date of birth, password. Google-only accounts can **set a password** | The same profile page. HR can't change anyone's name, email, date of birth, password or joining date, nor their own salary or limits |
 
 **Everywhere:**
-- A light/dark theme icon in the page header.
-- A sidebar that collapses to icons (button or Ctrl/Cmd+B) and remembers the choice.
+- Calendar and light/dark theme icons in the page header.
+- A sidebar that collapses to icons (button or Ctrl/Cmd+B) and remembers the choice. List items show their count (Pending 10, Approved 28, …).
+- Tables page with chevron icon buttons (Previous / Next page).
 - A bottom tab bar on phones.
 - Keyboard focus rings and tooltips on every icon button.
 

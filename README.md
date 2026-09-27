@@ -10,7 +10,7 @@ A leave tracker for a small company: employees request leave on a calendar, HR a
 - **Requesting leave.** An employee picks dates on a calendar. Fridays and Saturdays are never counted, and the form shows the working days and the balance left before sending.
 - **Deciding.** HR approves or rejects from the Pending table or a review page, with an optional note. A toast offers **Undo** for 5 seconds.
 - **Balances.** Each person has a yearly allowance per type (Annual 16, Casual 3, Sick 3 by default). Approved days count as used, and waiting days as pending.
-- **Team view.** The Team calendar (the calendar icon in each list page's header) shows who is away each day, and every HR table exports to CSV.
+- **Team view.** The Team calendar page (`/calendar`, opened from the calendar icon in each list page's header) shows who is away each day, and every HR table exports to CSV.
 - **People.** HR sets each person's department, salary (with history) and per-person leave limits. Every change is written to an audit log.
 - **Sign-in** with email and password, or optionally Google. The session is an httpOnly cookie, and the Go API enforces every rule.
 
@@ -29,7 +29,7 @@ A leave tracker for a small company: employees request leave on a calendar, HR a
 
 **Everywhere:**
 - Calendar and light/dark theme icons in the page header.
-- A sidebar that collapses to icons (button or Ctrl/Cmd+B) and remembers the choice. List items show their count (Pending 10, Approved 28, …).
+- A sidebar that collapses to icons (button or Ctrl/Cmd+B) and remembers the choice. List items show their count (Pending 10, Approved 28, …), and the profile card at the bottom (name, role · department) opens the account menu.
 - Tables page with chevron icon buttons (Previous / Next page).
 - A bottom tab bar on phones.
 - Keyboard focus rings and tooltips on every icon button.
@@ -43,7 +43,7 @@ A leave tracker for a small company: employees request leave on a calendar, HR a
 | HR | Employee |
 |---|---|
 | ![Review page for Nusrat's 04–08 Oct request, with an overlap warning and the Approve and Reject buttons](docs/screenshots/03-hr-review.png)<br>**Review:** who is asking, how many days are left, and which teammates are away on the same dates. | ![My leave page with the yearly total and one card per leave type](docs/screenshots/07-employee-my-leave.png)<br>**My leave:** available days in total and per type, with pending requests below. |
-| ![Team calendar for October 2026 with 7 October selected and seven people on leave](docs/screenshots/04-team-calendar.png)<br>**Team calendar:** who is away each day; pending leave has a dashed ring. | ![Request form with 6–7 October selected and a red message saying the dates overlap a pending request](docs/screenshots/08-request-leave-error.png)<br>**Request leave:** the form explains a problem before anything is sent. |
+| ![Team calendar for October 2026 with 7 October selected and seven people on leave](docs/screenshots/04-team-calendar.png)<br>**Team calendar:** a page showing who is away each day; pending leave has a dashed ring. The month and day stay in the URL. | ![Request form with 6–7 October selected and a red message saying the dates overlap a pending request](docs/screenshots/08-request-leave-error.png)<br>**Request leave:** the form explains a problem before anything is sent. |
 
 <p>
   <img src="docs/screenshots/11-mobile-my-leave.png" width="300" alt="My leave on a phone, with balance cards and the bottom tab bar">

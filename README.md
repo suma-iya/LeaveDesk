@@ -23,7 +23,7 @@ Leave management for a small company. Employees request leave on a calendar, HR 
 
 <p>
   <img src="docs/screenshots/11-mobile-my-leave.png" width="300" alt="My leave on a phone, with balance cards and the bottom tab bar">
-  <img src="docs/screenshots/12-mobile-hr-pending-dark.png" width="300" alt="HR pending requests on a phone in the dark theme, as cards with Reject and Approve buttons">
+  <img src="docs/screenshots/12-mobile-hr-pending.png" width="300" alt="HR pending requests on a phone, as cards with Reject and Approve buttons">
 </p>
 
 On phones, the sidebar becomes a bottom tab bar and tables become cards. Both themes work everywhere.

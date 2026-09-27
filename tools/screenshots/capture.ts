@@ -157,9 +157,9 @@ test('mobile: 11–12', async ({ browser }) => {
   await shot(nusrat, '11-mobile-my-leave')
   await nusrat.context().close()
 
-  const hr = await open(browser, MOBILE, 'dark', HR)
+  const hr = await open(browser, MOBILE, 'light', HR)
   await hr.goto('/hr/pending')
   await expect(hr.getByRole('heading', { name: 'Pending requests' })).toBeVisible()
-  await shot(hr, '12-mobile-hr-pending-dark')
+  await shot(hr, '12-mobile-hr-pending')
   await hr.context().close()
 })

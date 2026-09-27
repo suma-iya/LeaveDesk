@@ -11,7 +11,7 @@ const MAX_BYTES = 5 * 1024 * 1024
 const ACCEPT = 'application/pdf,image/png,image/jpeg'
 
 /** Checked in the browser for quick feedback; the server checks again. */
-export function checkAttachment(file: File): string | null {
+function checkAttachment(file: File): string | null {
   if (!['application/pdf', 'image/png', 'image/jpeg'].includes(file.type)) return 'Attach a PDF, PNG or JPG.'
   if (file.size > MAX_BYTES) return `The file is ${formatBytes(file.size)}; the limit is 5 MB.`
   return null

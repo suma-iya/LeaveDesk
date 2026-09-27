@@ -2,18 +2,11 @@ import { Card } from '@/components/Card'
 import { LeaveTypeTag, TypeSwatch } from '@/components/LeaveTypeTag'
 import { StackedBar } from '@/components/StackedBar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { TYPE_LABEL, available, sumBalances } from '@/lib/leave'
+import { TYPE_LABEL, available, sumBalances, yearlySegments } from '@/lib/leave'
 import { typeStyles } from '@/lib/styles'
 import { cn } from '@/lib/utils'
 import type { Balance } from '@/types'
 
-/** Used days per type in their colours, then pending as amber stripes. */
-export function yearlySegments(balances: Balance[]) {
-  return [
-    ...balances.map((b) => ({ type: b.type, days: b.used })),
-    { type: 'pending' as const, days: balances.reduce((n, b) => n + b.pending, 0) },
-  ]
-}
 
 export function BalanceLegend({ balances }: { balances: Balance[] }) {
   const pending = balances.reduce((n, b) => n + b.pending, 0)

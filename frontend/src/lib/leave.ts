@@ -44,3 +44,11 @@ export function sumBalances(balances: Balance[]): YearTotal {
 
 /** "1 day", "6 days" */
 export const pluralDays = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`
+
+/** Used days per type in their colours, then pending as amber stripes (for StackedBar). */
+export function yearlySegments(balances: Balance[]) {
+  return [
+    ...balances.map((b) => ({ type: b.type, days: b.used })),
+    { type: 'pending' as const, days: balances.reduce((n, b) => n + b.pending, 0) },
+  ]
+}

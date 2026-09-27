@@ -1,34 +1,20 @@
 import { Link } from 'react-router-dom'
 import { createColumnHelper } from '@tanstack/react-table'
 import { Check, Eye, X } from 'lucide-react'
-import { Avatar } from '@/components/Avatar'
 import { BalanceBar } from '@/components/BalanceBar'
 import { IconButton } from '@/components/AppButton'
 import { LeaveTypeTag } from '@/components/LeaveTypeTag'
 import { StatusBadge } from '@/components/StatusBadge'
 import { formatRange } from '@/lib/dates'
 import { fullName } from '@/lib/format'
-import type { LeaveRequest, Person } from '@/types'
+import type { LeaveRequest } from '@/types'
+import { PersonCell } from './PersonCell'
 
 /** Which list a review page was opened from (back link + breadcrumb). */
 export type HrList = 'pending' | 'approved' | 'all'
 export const reviewLink = (r: LeaveRequest) => `/hr/requests/${r.id}`
 
 const col = createColumnHelper<LeaveRequest>()
-
-export function PersonCell({ person, size = 32, to }: { person: Person; size?: number; to?: string }) {
-  const name = fullName(person)
-  return (
-    <span className="flex min-w-0 items-center gap-3">
-      <Avatar name={name} src={person.avatarUrl} size={size} />
-      <span className="min-w-0">
-        {to ? <Link to={to} className="block truncate font-semibold hover:underline">{name}</Link>
-          : <span className="block truncate font-semibold">{name}</span>}
-        <span className="block truncate text-xs text-muted-foreground">{person.department?.name ?? 'No department'}</span>
-      </span>
-    </span>
-  )
-}
 
 /** Columns for the HR tables. No request-ID column. */
 export const hrColumns = (from: HrList) => ({

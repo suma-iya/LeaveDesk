@@ -1,21 +1,7 @@
-// Run with: npm test. passwordStrength lives in RegisterPage.tsx, which needs
-// Vite to compile TSX and resolve @/ (same approach as authPages.test.ts).
+// Run with: npm test. passwordStrength is a plain module, so Node imports it directly.
 import assert from 'node:assert/strict'
-import { after, before, test } from 'node:test'
-import { createServer, type ViteDevServer } from 'vite'
-
-// The only browser API the auth pages touch on load (useIsMobile).
-Object.assign(globalThis, {
-  window: { matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }) },
-})
-
-let vite: ViteDevServer
-let passwordStrength: (pw: string) => number
-before(async () => {
-  vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom', logLevel: 'silent' })
-  ;({ passwordStrength } = await vite.ssrLoadModule('/src/features/auth/RegisterPage.tsx'))
-})
-after(() => vite.close())
+import { test } from 'node:test'
+import { passwordStrength } from './passwordStrength.ts'
 
 test('passwordStrength scores one point per rule (0 = Too short … 4 = Strong)', () => {
   // Rules: ≥8 chars · upper+lower case · a digit · a symbol or ≥12 chars.

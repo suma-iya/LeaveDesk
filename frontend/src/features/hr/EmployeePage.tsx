@@ -21,10 +21,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useUser } from '@/features/auth/AuthProvider'
-import { yearlySegments } from '@/features/employee/BalanceCards'
 import { formatDate, formatRange } from '@/lib/dates'
 import { ROLE_LABEL, formatBDT, fullName, tenure } from '@/lib/format'
-import { LEAVE_TYPES, TYPE_LABEL, sumBalances } from '@/lib/leave'
+import { LEAVE_TYPES, TYPE_LABEL, sumBalances, yearlySegments } from '@/lib/leave'
 import { inputHeight } from '@/lib/styles'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { cn } from '@/lib/utils'
@@ -165,11 +164,7 @@ function EmployeeForm({ detail }: { detail: EmployeeDetail }) {
 
   const limitsCard = (
     <Card className="flex flex-col gap-3 p-5">
-      <div className="flex items-center justify-between gap-2">
-        <CardTitle>Leave limits {year}</CardTitle>
-        <AppButton icon={RotateCcw} label="Use defaults" variant="ghost" disabled={self}
-          onClick={() => setForm((f) => ({ ...f, limits: Object.fromEntries(LEAVE_TYPES.map((t) => [t, String(detail.defaults[t])])) as Record<LeaveType, string> }))} />
-      </div>
+      <CardTitle>Leave limits {year}</CardTitle>
       {balances.map((b) => (
         <div key={b.type} className="flex flex-col gap-1">
           <div className="flex items-center gap-3">

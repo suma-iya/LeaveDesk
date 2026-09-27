@@ -103,11 +103,11 @@ test('HR on desktop: 02–06', async ({ browser }) => {
 
   // The Team calendar, opened from the Pending page's header icon, with Wed 07 Oct selected.
   await page.goto('/hr/pending')
-  await page.getByRole('link', { name: 'Team calendar' }).click()
+  await page.locator('main header').first().getByRole('link', { name: 'Team calendar' }).click()
   await page.getByRole('grid', { name: 'October 2026' }).getByRole('button', { name: /^October 7,/ }).click()
   await expect(page.getByText('Wednesday, 7 October 2026')).toBeVisible()
   await shot(page, '04-team-calendar')
-  await page.getByRole('button', { name: 'Close calendar' }).click()
+  await page.locator('main header').first().getByRole('link', { name: 'Team calendar' }).click() // back to Pending
   await expect(page).toHaveURL(/\/hr\/pending$/)
 
   await page.goto('/hr/people')

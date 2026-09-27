@@ -70,25 +70,32 @@ test.describe('navigation', () => {
     await expect(nav.getByRole('link', { name: /^People/ })).toContainText(String(people))
   })
 
-  test('the header calendar icon opens the calendar page; X and Esc go back', async ({ page }) => {
+  test('the header calendar icon opens /calendar inside the app; the icon or Back return', async ({ page }) => {
     await signIn(page, NUSRAT.email, '/me')
-    const header = page.locator('main header').first()
-    const labels = await header.locator('a, button').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') || e.textContent?.trim()))
+    const icon = page.locator('main header').first().getByRole('link', { name: 'Team calendar' })
+    const labels = await page.locator('main header').first().locator('a, button').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') || e.textContent?.trim()))
     expect(labels.slice(0, 3)).toEqual(['Request leave', 'Team calendar', 'Switch to dark theme'])
 
-    await header.getByRole('link', { name: 'Team calendar' }).click()
+    await icon.click()
     await expect(page).toHaveURL(/\/calendar$/)
     await expect(page.getByRole('heading', { name: 'Team calendar' })).toBeVisible()
-    await expect(page.getByRole('grid')).toBeVisible()
-    await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0) // full screen, like the old overlay
-    await page.getByRole('button', { name: 'Close calendar' }).click()
-    await expect(page).toHaveURL(/\/me$/)
+    await expect(page).toHaveTitle('Team calendar · LeaveDesk')
+    await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible() // inside the app shell
+    await expect(page.getByRole('dialog')).toHaveCount(0) // no popup, no backdrop
+    await expect(icon).toHaveAttribute('aria-current', 'page')
 
-    await header.getByRole('link', { name: 'Team calendar' }).click()
-    await page.getByRole('combobox', { name: 'Department' }).click()
-    await page.keyboard.press('Escape') // closes the dropdown only
-    await expect(page).toHaveURL(/\/calendar$/)
-    await page.keyboard.press('Escape')
+    // Month and day live in the URL and survive a refresh.
+    await page.getByRole('button', { name: 'Next month' }).click()
+    await page.getByRole('grid').getByRole('button').nth(10).click()
+    await expect(page).toHaveURL(/\/calendar\?month=\d{4}-\d{2}&day=\d{4}-\d{2}-\d{2}$/)
+    const url = page.url()
+    await page.reload()
+    await expect(page).toHaveURL(url)
+
+    await icon.click() // back to where it was opened from
+    await expect(page).toHaveURL(/\/me$/)
+    await icon.click()
+    await page.goBack()
     await expect(page).toHaveURL(/\/me$/)
   })
 

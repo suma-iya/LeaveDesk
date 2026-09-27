@@ -54,6 +54,8 @@ interface BaseProps extends Omit<ComponentProps<'button'>, 'children'> {
   loading?: boolean
   /** Render as a router link that looks like this button. */
   to?: string
+  /** Router state passed with `to` (e.g. where to come back to). */
+  linkState?: unknown
   /** Render as a plain link (downloads, new tabs). */
   href?: string
   download?: string
@@ -75,7 +77,7 @@ export function AppButton(props: LabeledButtonProps | IconButtonProps) {
   const isMobile = useIsMobile()
   const {
     icon: Icon, label, variant = 'secondary', shape = 'labeled', size, loading = false,
-    to, href, download, target, className, disabled, type = 'button', ...rest
+    to, linkState, href, download, target, className, disabled, type = 'button', ...rest
   } = props
   const resolvedSize = size ?? (isMobile ? 'mobile' : 'desktop')
   const iconClass = resolvedSize === 'desktop' ? 'size-4' : 'size-[18px]'
@@ -92,7 +94,7 @@ export function AppButton(props: LabeledButtonProps | IconButtonProps) {
 
   const button = to ? (
     <ShadcnButton asChild className={classes}>
-      <Link to={to} {...a11y}>{content}</Link>
+      <Link to={to} state={linkState} aria-current={rest['aria-current']} {...a11y}>{content}</Link>
     </ShadcnButton>
   ) : href ? (
     <ShadcnButton asChild className={classes}>

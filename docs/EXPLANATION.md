@@ -77,7 +77,7 @@ migrations/             SQL files embedded in the binary, run with golang-migrat
 | `api/queries.ts` | Query keys, shared hooks, and `refreshLeaveData()`, which marks every view of leave data stale after a change. |
 | `features/auth/*` | `AuthProvider` (the `/me` query), route guards (signed in, guest, role), and the Sign in and Register pages. |
 | `layouts/AppShell.tsx` | The 80px rail (bottom tab bar on mobile), amber "new" dots, and the account menu. |
-| `layouts/HeaderActions.tsx` · `features/calendar/*` · `layouts/useNavCounts.ts` | The list-page header buttons (Request leave, Team calendar, theme, Export); the Team calendar page at `/calendar`, full screen like the former overlay, where the X or Esc goes back; and the sidebar's count badges, each from the same query as its page, so they refresh with it. |
+| `layouts/HeaderActions.tsx` · `features/calendar/*` · `layouts/useNavCounts.ts` | The list-page header buttons (Request leave, Team calendar, theme, Export); the Team calendar page at `/calendar` (inside the app shell; month and day in the URL; the header's calendar icon, pressed there, returns to the page it was opened from); and the sidebar's count badges, each from the same query as its page, so they refresh with it. |
 | `components/AppButton.tsx` | The only button: `labeled` (exactly 140×36 on desktop, full width at 44 or 48 on mobile and auth pages) or `icon` (36/44 square with aria-label and tooltip). Five variants. |
 | `components/DataTable.tsx` | The one table pattern: filter toolbar, server paging with 10 / 20 / 40 rows per page and "Showing 1–10 of 23". On mobile it switches to cards with a filter sheet and chips. |
 | `features/employee/*` | My leave, History, the request form (month picker, type picker, summary, attachment) and request details (with the PDF preview). |
@@ -199,7 +199,7 @@ Deleting a user cascades to their requests, limits, salaries and files.
 - **Undo** (`features/hr/decisions.ts`). A decision from a row or the review page is held for 5 seconds in a small store outside React, and the row is hidden meanwhile. Undo cancels the timer; otherwise the request is sent. Because the timer lives outside React, leaving the page doesn't lose it, and a `pagehide` handler sends held decisions with `fetch keepalive`.
 - **Request form.** The month picker shows only the user's own leave: the selection, their pending days as a dashed amber border, and Fri/Sat as weekend. Working days, "Available now" and "Left after this" are recomputed on every render. Submit is disabled while any rule fails. The server's message is shown if it disagrees (for example a request submitted from another tab).
 - **Design system.** Every colour is a CSS variable (`--surface`, `--pending-fg`, `--type-annual`, …) defined for `:root` (light) and `.dark`, then mapped to Tailwind classes. Themes change colours only, never sizes. The choice is stored in localStorage and defaults to the OS setting; an inline script applies it before first paint.
-- **Mobile (<768px).** The rail becomes a bottom tab bar. Tables become cards, filters move to a bottom sheet with chips, and the calendar opens full screen with a dot grid. Main actions sit in a 48px sticky bar above the tab bar. Touch targets are at least 44px.
+- **Mobile (<768px).** The rail becomes a bottom tab bar. Tables become cards, filters move to a bottom sheet with chips, and the calendar page uses a compact dot grid with the day list below it. Main actions sit in a 48px sticky bar above the tab bar. Touch targets are at least 44px.
 
 ## 7. Docker setup
 

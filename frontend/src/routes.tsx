@@ -3,7 +3,7 @@ import { AuthProvider } from '@/features/auth/AuthProvider'
 import { GuestOnly, HomeRedirect, RequireAuth, RequireRole } from '@/features/auth/guards'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { SignInPage } from '@/features/auth/SignInPage'
-import { CalendarPage } from '@/features/calendar/CalendarPage'
+import { TeamCalendarPage } from '@/features/calendar/TeamCalendarPage'
 import { HistoryPage } from '@/features/employee/HistoryPage'
 import { MyLeavePage } from '@/features/employee/MyLeavePage'
 import { RequestDetailsPage } from '@/features/employee/RequestDetailsPage'
@@ -33,8 +33,6 @@ export const router = createBrowserRouter([
       {
         element: <RequireAuth />,
         children: [
-          // Full-screen, over the backdrop, like the former overlay: no sidebar.
-          { path: '/calendar', element: <CalendarPage /> },
           {
             element: <AppShell />,
             children: [
@@ -56,8 +54,9 @@ export const router = createBrowserRouter([
                   { path: '/hr/people/:id', element: <EmployeePage /> },
                 ],
               },
-              // Both roles request leave (HR's own requests are decided by another HR).
+              // Both roles request leave (HR's own requests are decided by another HR) and see the team calendar.
               { path: '/me/request/new', element: <RequestFormPage /> }, // ?edit=ID | ?from=ID
+              { path: '/calendar', element: <TeamCalendarPage /> }, // ?month=2026-09&day=2026-09-28
               { path: '/profile', element: <ProfilePage /> },
               { path: '*', element: <NotFoundPage /> },
             ],

@@ -13,9 +13,11 @@ interface PageHeaderProps {
   breadcrumb?: { label: string; to?: string }[]
   /** Next to the title on detail pages (e.g. a status badge). */
   titleAside?: ReactNode
+  /** One muted line under the title. */
+  subtitle?: ReactNode
 }
 
-export function PageHeader({ title, actions, back, breadcrumb, titleAside }: PageHeaderProps) {
+export function PageHeader({ title, actions, back, breadcrumb, titleAside, subtitle }: PageHeaderProps) {
   const detail = Boolean(back)
   return (
     <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -37,6 +39,7 @@ export function PageHeader({ title, actions, back, breadcrumb, titleAside }: Pag
             <h1 className={cn('font-bold tracking-[-0.02em]', detail ? 'text-[22px]' : 'text-[26px]')}>{title}</h1>
             {titleAside}
           </div>
+          {subtitle && <p className="mt-1 text-[13.5px] text-muted-foreground">{subtitle}</p>}
         </div>
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2 max-md:[&>*:first-child]:flex-1">{actions}</div>}

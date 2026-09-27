@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/suma-iya/leavedesk/backend/internal/auth"
 	"github.com/suma-iya/leavedesk/backend/internal/domain"
@@ -279,7 +280,7 @@ func validateName(first, last string) error {
 	switch {
 	case first == "" || last == "":
 		return domain.Invalid("Enter your first and last name.")
-	case len(first) > 60 || len(last) > 60:
+	case utf8.RuneCountInString(first) > 60 || utf8.RuneCountInString(last) > 60:
 		return domain.Invalid("Names can be at most 60 characters.")
 	}
 	return nil
@@ -313,6 +314,9 @@ func (s *Service) validateEmail(email string) error {
 func validateNewPassword(password, confirm string) error {
 	if len(password) < 8 {
 		return domain.Invalid("Use at least 8 characters for the password.")
+	}
+	if len(password) > 72 { // bcrypt's limit, in bytes
+		return domain.Invalid("Use at most 72 characters for the password.")
 	}
 	if confirm != "" && confirm != password {
 		return domain.Invalid("The passwords do not match.")

@@ -19,6 +19,10 @@ interface Held {
   status: 'approved' | 'rejected'
   note: string
   timer: ReturnType<typeof setTimeout>
+  /** The Undo toast, closed once the decision is sent. */
+  toastId?: string | number
+  /** Set when sending starts, so nothing sends it twice. */
+  sent?: boolean
 }
 
 const held = new Map<number, Held>()
@@ -30,7 +34,15 @@ function changed() {
   listeners.forEach((l) => l())
 }
 
-async function send(item: Held, client: QueryClient, keepalive = false) {
+// The row stays hidden until the request finishes; `sent` stops a second
+// send (e.g. pagehide again after a back/forward-cache restore) and a late
+// Undo. The toast is closed here because sonner pauses its own timer while
+// hovered, so it could otherwise outlive the Undo window.
+async function send(item: Held, client: QueryClient | null, keepalive = false) {
+  if (item.sent) return
+  item.sent = true
+  clearTimeout(item.timer)
+  if (item.toastId !== undefined) toast.dismiss(item.toastId)
   try {
     await api.requests.decide(item.request.id, item.status, item.note, keepalive)
   } catch (error) {
@@ -38,7 +50,7 @@ async function send(item: Held, client: QueryClient, keepalive = false) {
   } finally {
     held.delete(item.request.id)
     changed()
-    void refreshLeaveData(client)
+    if (client) void refreshLeaveData(client)
   }
 }
 
@@ -46,11 +58,12 @@ export function decideWithUndo(client: QueryClient, request: LeaveRequest, statu
   const item: Held = { request, status, note, timer: setTimeout(() => void send(item, client), UNDO_MS) }
   held.set(request.id, item)
   changed()
-  toast.success(`${status === 'approved' ? 'Approved' : 'Rejected'} ${fullName(request.employee)}’s leave (${formatRange(request.startDate, request.endDate)})`, {
+  item.toastId = toast.success(`${status === 'approved' ? 'Approved' : 'Rejected'} ${fullName(request.employee)}’s leave (${formatRange(request.startDate, request.endDate)})`, {
     duration: UNDO_MS,
     action: {
       label: 'Undo',
       onClick: () => {
+        if (item.sent) return
         clearTimeout(item.timer)
         held.delete(request.id)
         changed()
@@ -61,10 +74,7 @@ export function decideWithUndo(client: QueryClient, request: LeaveRequest, statu
 
 if (typeof window !== 'undefined') {
   window.addEventListener('pagehide', () => {
-    held.forEach((item) => {
-      clearTimeout(item.timer)
-      void api.requests.decide(item.request.id, item.status, item.note, true)
-    })
+    held.forEach((item) => void send(item, null, true))
   })
 }
 
@@ -72,6 +82,7 @@ if (typeof window !== 'undefined') {
 export function useHeldDecisions() {
   return useSyncExternalStore(
     (l) => { listeners.add(l); return () => listeners.delete(l) },
+    () => snapshot,
     () => snapshot,
   )
 }

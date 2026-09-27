@@ -47,7 +47,7 @@ function subscribe(listener: () => void) {
 }
 
 export function useTheme() {
-  const theme = useSyncExternalStore(subscribe, () => current)
+  const theme = useSyncExternalStore(subscribe, () => current, () => current)
   return {
     theme,
     setTheme,

@@ -94,7 +94,10 @@ docker compose exec backend /app/leavedesk demote --email someone@company.test
 | Command | What it does |
 |---|---|
 | `make test` | `go vet` and the Go tests, run in a Go container |
-| `cd frontend && npm test` | The TypeScript unit tests (`lib/leave.ts` and the sign-in and register pages), using Node's built-in test runner |
+| `cd frontend && npm test` | The frontend unit tests (helpers, hooks, components and the auth pages), using Node's built-in test runner |
+| `make e2e` | Browser end-to-end tests (Playwright, using your installed Chrome) against a separate stack on :3100 with its own freshly seeded database |
+| `make e2e-down` | Deletes the e2e stack and its database |
+| `cd frontend && npm run e2e:report` | Opens the report of the last e2e run, with traces and screenshots of any failure |
 | `make logs` | Follows the API's JSON request log |
 | `make reset` | `docker compose down -v`, which deletes the database and uploaded files |
 

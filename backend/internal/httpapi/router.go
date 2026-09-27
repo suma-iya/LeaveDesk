@@ -1,6 +1,9 @@
 package httpapi
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
 // Handler registers every endpoint. Go 1.22+ ServeMux patterns carry the
 // method and {wildcards}, so the standard library is enough.
@@ -51,9 +54,28 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /api/departments", s.hrOnly(s.createDepartment))
 
 	mux.Handle("/api/", s.public(func(w http.ResponseWriter, r *http.Request) error {
+		if allowed := allowedMethods(mux, r); len(allowed) > 0 {
+			w.Header().Set("Allow", strings.Join(allowed, ", "))
+			writeErr(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "This endpoint does not accept "+r.Method+".")
+			return nil
+		}
 		writeErr(w, http.StatusNotFound, "NOT_FOUND", "No such endpoint.")
 		return nil
 	}))
 
 	return logRequests(recoverPanics(mux))
+}
+
+// allowedMethods lists the methods a real route accepts at r's path. The
+// /api/ catch-all matches every method, so ServeMux never answers 405 itself.
+func allowedMethods(mux *http.ServeMux, r *http.Request) []string {
+	var allowed []string
+	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete} {
+		probe := r.Clone(r.Context())
+		probe.Method = method
+		if _, pattern := mux.Handler(probe); pattern != "" && pattern != "/api/" {
+			allowed = append(allowed, method)
+		}
+	}
+	return allowed
 }

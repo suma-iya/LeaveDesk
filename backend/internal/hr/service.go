@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/suma-iya/leavedesk/backend/internal/domain"
 	"github.com/suma-iya/leavedesk/backend/internal/leave"
@@ -59,7 +60,7 @@ func (s *Service) Departments(ctx context.Context) ([]domain.Department, error) 
 
 func (s *Service) CreateDepartment(ctx context.Context, name string) (*domain.Department, error) {
 	name = strings.Join(strings.Fields(name), " ")
-	if len(name) < 2 || len(name) > 60 {
+	if n := utf8.RuneCountInString(name); n < 2 || n > 60 {
 		return nil, domain.Invalid("Department names are 2–60 characters.")
 	}
 	d, err := s.store.CreateDepartment(ctx, name)

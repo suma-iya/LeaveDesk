@@ -70,7 +70,7 @@ func (s *Sessions) Read(r *http.Request) (string, error) {
 	}
 	claims := &Claims{}
 	_, err = jwt.ParseWithClaims(cookie.Value, claims, func(*jwt.Token) (any, error) { return s.secret, nil },
-		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithIssuer("leavedesk"))
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithIssuer("leavedesk"), jwt.WithExpirationRequired())
 	if err != nil {
 		return "", fmt.Errorf("invalid session: %w", err)
 	}

@@ -139,8 +139,18 @@ func (s *Service) Get(ctx context.Context, u *domain.User, id int64) (*Request, 
 	return r, nil
 }
 
-func (s *Service) Create(ctx context.Context, u *domain.User, d Draft) (*Request, error) {
+// normalize trims the reason and treats an empty attachment id as none, so
+// "" never reaches the uuid column.
+func normalize(d Draft) Draft {
 	d.Reason = strings.TrimSpace(d.Reason)
+	if d.AttachmentFileID != nil && *d.AttachmentFileID == "" {
+		d.AttachmentFileID = nil
+	}
+	return d
+}
+
+func (s *Service) Create(ctx context.Context, u *domain.User, d Draft) (*Request, error) {
+	d = normalize(d)
 	var id int64
 	err := s.store.InUserLock(ctx, u.ID, func(tx Store) error {
 		days, err := s.check(ctx, tx, u, d, nil)
@@ -159,7 +169,7 @@ func (s *Service) Create(ctx context.Context, u *domain.User, d Draft) (*Request
 // Update edits a pending request; its own days are given back before the
 // balance check, and it is excluded from the overlap check.
 func (s *Service) Update(ctx context.Context, u *domain.User, id int64, d Draft) (*Request, error) {
-	d.Reason = strings.TrimSpace(d.Reason)
+	d = normalize(d)
 	current, err := s.Get(ctx, u, id)
 	if err != nil {
 		return nil, err
@@ -185,12 +195,10 @@ func (s *Service) Update(ctx context.Context, u *domain.User, id int64, d Draft)
 }
 
 func (s *Service) check(ctx context.Context, tx Store, u *domain.User, d Draft, editing *Request) (int, error) {
-	if d.AttachmentFileID != nil && *d.AttachmentFileID != "" {
+	if d.AttachmentFileID != nil {
 		if err := tx.AttachmentOwnedBy(ctx, *d.AttachmentFileID, u.ID); err != nil {
 			return 0, err
 		}
-	} else {
-		d.AttachmentFileID = nil
 	}
 	own, err := tx.ActiveRequests(ctx, u.ID)
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/suma-iya/leavedesk/backend/internal/domain"
 )
@@ -81,6 +82,7 @@ func (s *Service) Save(ctx context.Context, owner *domain.User, kind Kind, name 
 		return nil, err
 	}
 	if err := os.MkdirAll(s.dir, 0o755); err != nil {
+		_ = s.store.DeleteFile(ctx, f.ID)
 		return nil, fmt.Errorf("create upload dir: %w", err)
 	}
 	if err := os.WriteFile(filepath.Join(s.dir, f.ID), data, 0o644); err != nil {
@@ -130,8 +132,12 @@ func cleanName(name string) string {
 	if name == "" || name == "." || name == "/" {
 		return "file"
 	}
-	if len(name) > 120 {
-		name = name[:120]
+	if len(name) > 120 { // bytes; step back so a multi-byte character isn't cut in half
+		cut := 120
+		for cut > 0 && !utf8.RuneStart(name[cut]) {
+			cut--
+		}
+		name = name[:cut]
 	}
 	return name
 }

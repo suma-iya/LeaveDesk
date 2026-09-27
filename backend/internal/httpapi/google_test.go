@@ -25,7 +25,9 @@ type fakeGoogle struct {
 	exchanged bool
 }
 
-func (f *fakeGoogle) AuthURL(state string) string { return "https://accounts.google.test/auth?state=" + state }
+func (f *fakeGoogle) AuthURL(state string) string {
+	return "https://accounts.google.test/auth?state=" + state
+}
 func (f *fakeGoogle) Exchange(context.Context, string) (*auth.GoogleIdentity, error) {
 	f.exchanged = true
 	return f.identity, f.err
@@ -114,7 +116,7 @@ func TestGoogleCallback(t *testing.T) {
 		{name: "success signs in", query: "code=c&state=s1", stateCookie: "s1", identity: &auth.GoogleIdentity{Subject: sub, Email: "known@company.test"},
 			wantExchange: true, wantLocation: "/", wantSession: true},
 		{name: "no account yet goes to registration", query: "code=c&state=s1", stateCookie: "s1",
-			identity: &auth.GoogleIdentity{Subject: "sub-new", Email: "new@company.test", FirstName: "Nadia", LastName: "Rahman"},
+			identity:     &auth.GoogleIdentity{Subject: "sub-new", Email: "new@company.test", FirstName: "Nadia", LastName: "Rahman"},
 			wantExchange: true, wantLocation: "/register?via=google", wantPending: true},
 	}
 	for _, tt := range tests {

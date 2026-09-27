@@ -5,3 +5,8 @@ dist/
 .DS_Store
 backend/bin/
 docker-compose.override.yml
+
+# Screenshot tool (tools/screenshots)
+tools/screenshots/node_modules/
+tools/screenshots/test-results/
+tools/screenshots/playwright-report/

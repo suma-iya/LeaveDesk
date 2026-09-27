@@ -1,0 +1,12 @@
+{
+  "name": "leavedesk-screenshots",
+  "private": true,
+  "description": "Takes the README screenshots from the running app. Not part of the app.",
+  "type": "module",
+  "scripts": {
+    "capture": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

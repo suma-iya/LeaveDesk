@@ -1,5 +1,5 @@
 # Shortcuts for the docker-compose stack.
-.PHONY: up down reset seed test logs e2e-up e2e e2e-down
+.PHONY: up down reset seed test logs e2e-up e2e e2e-down screenshots
 
 up:
 	docker compose up --build -d
@@ -36,3 +36,8 @@ e2e: e2e-up
 # Deletes the e2e stack and its database.
 e2e-down:
 	$(E2E) down -v
+
+# README screenshots from the running app (make up && make seed first).
+# BASE_URL=http://localhost:3100 make screenshots uses another stack.
+screenshots:
+	cd tools/screenshots && ([ -d node_modules ] || npm ci) && npx playwright install chromium && npx playwright test
